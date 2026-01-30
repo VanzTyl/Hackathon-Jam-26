@@ -2,6 +2,8 @@
 
 import { useState, FormEvent } from 'react'
 import { supabase } from '../../supabase-client'
+import { useRouter } from 'next/navigation' // For redirecting
+import Link from 'next/link' // For the login link
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -10,6 +12,8 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('')
   const [mask, setMask] = useState<'student' | 'tutor'>('student')
   const [message, setMessage] = useState('')
+  
+  const router = useRouter() // Initialize router
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault()
@@ -38,7 +42,7 @@ export default function RegisterPage() {
         .from('users')
         .insert([
           {
-            user_id: authData.user.id, // Linking Auth ID to your table
+            user_id: authData.user.id,
             email_address: email,
             first_name: firstName,
             last_name: lastName,
@@ -49,7 +53,12 @@ export default function RegisterPage() {
       if (dbError) {
         setMessage(`Database Error: ${dbError.message}`)
       } else {
-        setMessage('Registration successful! Check your email for verification.')
+        setMessage('Registration successful! Redirecting...')
+        
+        // 4. Redirect to home page after a short delay so they can see the success message
+        setTimeout(() => {
+          router.push('/')
+        }, 2000)
       }
     }
   }
@@ -85,6 +94,13 @@ export default function RegisterPage() {
       </form>
 
       {message && <p>{message}</p>}
+
+      <hr />
+      <p>Already have an account?</p>
+      {/* Option to go to login page */}
+      <Link href="/login">
+        <button type="button">Go to Login</button>
+      </Link>
     </div>
   )
 }

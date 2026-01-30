@@ -1,14 +1,26 @@
 'use client'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+
+import Link from 'next/link'
 
 export default function Home() {
-  const router = useRouter()
+  return (
+    <div className='welcome-page-container'>
+      <h1>welcome yo</h1>
+      
+      
+      <div className='buttons-container'>
+        <Link href="/login">
+          <button className='welcome-button' style={{margin:"20px"}}>
+            Login
+          </button>
+        </Link>
 
-  useEffect(() => {
-    // This immediately sends the user to /login
-    router.push('/register')
-  }, [router])
-
-  return null // Returns nothing because the user is being redirected
+        <Link href="/register">
+          <button className='welcome-button'>
+            Register
+          </button>
+        </Link>
+      </div>
+    </div>
+  )
 }
