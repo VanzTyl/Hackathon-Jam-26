@@ -57,7 +57,7 @@ export default function RegisterPage() {
   return (
     <div>
       <h1>CIIT Register</h1>
-      <form onSubmit={handleRegister}>
+      <form onSubmit={handleRegister} className='register-form'>
         <div>
           <label>First Name:</label>
           <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
@@ -81,7 +81,7 @@ export default function RegisterPage() {
             <option value="tutor">Tutor</option>
           </select>
         </div>
-        <button type="submit">Register</button>
+        <button type="submit" className='form-button'>Register</button>
       </form>
 
       {message && <p>{message}</p>}

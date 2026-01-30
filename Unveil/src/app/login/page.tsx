@@ -48,7 +48,7 @@ const handleLogin = async (e: FormEvent) => {
   return (
     <div>
       <h1>CIIT Login</h1>
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleLogin} className='login-form'>
         <div>
           <label>Email:</label>
           <input 
@@ -67,7 +67,7 @@ const handleLogin = async (e: FormEvent) => {
             required 
           />
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" className='form-button'>Login</button>
       </form>
 
       {message && <p>{message}</p>}
