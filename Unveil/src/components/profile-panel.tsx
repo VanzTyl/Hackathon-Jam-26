@@ -62,15 +62,15 @@ const connections: Connection[] = [
 
 export function ProfilePanel() {
   return (
-    <aside className="flex h-full w-72 flex-col bg-card/80 p-6 backdrop-blur-sm">
+    <aside className="flex h-full w-72 flex-col bg-card/80 p-2 backdrop-blur-sm">
       {/* Course Header */}
-      <div className="mb-6">
+      <div className="mb-2">
         <h2 className="text-lg font-bold text-primary">Accounting</h2>
         <p className="text-xs text-muted-foreground">Group: Rz160015</p>
       </div>
 
       {/* Tutor Profile Card */}
-      <div className="mb-6 flex flex-col items-center rounded-3xl bg-gradient-to-b from-background to-card p-6">
+      <div className="mb-2 flex flex-col items-center rounded-3xl bg-gradient-to-b from-background to-card p-3">
         <div className="mb-4 h-24 w-24 rounded-full border-4 border-card bg-slate-300 shadow-lg" />
         <h3 className="mb-1 text-lg font-semibold text-foreground">
           Dr Ronald Jackson
@@ -94,7 +94,7 @@ export function ProfilePanel() {
 
       {/* Connections */}
       <div className="flex-1 overflow-hidden">
-        <button className="mb-4 flex w-full items-center justify-between text-sm font-semibold text-foreground">
+        <button className="mb-2 flex w-full items-center justify-between text-sm font-semibold text-foreground">
           <span>Connections</span>
           <ChevronUp className="h-4 w-4" />
         </button>
