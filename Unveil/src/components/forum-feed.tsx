@@ -1,256 +1,294 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Plus,
-  Bookmark,
-  MessageCircle,
-  Ghost,
-  Send,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useCallback } from "react";
+import { Plus, MessageSquare, Clock, Send, ArrowLeft, X } from "lucide-react";
+import { supabase } from "@/supabase-client";
+import { getForumPosts, getCurrentMode } from "@/lib/database";
 
-interface ForumPost {
-  id: string;
-  title: string;
-  author: {
-    name: string;
-    avatar: string;
-    isAnonymous?: boolean;
-  };
-  timeAgo: string;
-  tags: string[];
-  content: string;
-  highlightedWords: string[];
-  responses: { avatar: string }[];
-  bookmarked: boolean;
-}
+export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, maskMode: 'student' | 'mentor' }) {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [currentMaskedName, setCurrentMaskedName] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newPost, setNewPost] = useState({ title: '', content: '', tags: '' });
+  
+  // Response System State
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [newResponse, setNewResponse] = useState("");
+  const [responses, setResponses] = useState<any[]>([]);
+  const [loadingResponses, setLoadingResponses] = useState(false);
 
-const forumPosts: ForumPost[] = [
-  {
-    id: "1",
-    title: "Lecture Rescheduling",
-    author: {
-      name: "Elisabeth May",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    },
-    timeAgo: "6h ago",
-    tags: ["Accounting"],
-    content:
-      "Hi mates,\nso i talked with Dr Hellen and because of her illner we need to reschedule upcoming Lecture. You propably notice that this lecture is the last before exam so Dr Hellen asked us also if we want to attend for additional lecture where we can study more difficult excercise",
-    highlightedWords: ["reschedule upcoming Lecture", "additional lecture"],
-    responses: [
-      { avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" },
-      { avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" },
-      { avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop" },
-    ],
-    bookmarked: false,
-  },
-  {
-    id: "2",
-    title: "Date of the final exams",
-    author: {
-      name: "Dr Ronald Jackson",
-      avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop",
-    },
-    timeAgo: "3d ago",
-    tags: ["Accounting", "Corporate law"],
-    content:
-      "Dear Students,\nI want to inform you that after 6 months of our cooperation it is necessary to test your knowledge by the final exam. It means we need to find a date for our final exam. In this semester you were extremely under the stress due to COVID-19 situation so would like you to offer an extra attempt for this test. My proposition is...",
-    highlightedWords: ["final exam", "extra attempt"],
-    responses: [
-      { avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" },
-      { avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop" },
-    ],
-    bookmarked: true,
-  },
-  {
-    id: "3",
-    title: "Anonymous Question about Grades",
-    author: {
-      name: "Anonymous CIITzen",
-      avatar: "",
-      isAnonymous: true,
-    },
-    timeAgo: "1d ago",
-    tags: ["Public Finance"],
-    content:
-      "Hello everyone,\nI wanted to ask about the grading criteria for our midterm. I'm a bit confused about how the curve will be applied. Can anyone who spoke with the professor clarify this for us?",
-    highlightedWords: ["grading criteria", "curve"],
-    responses: [
-      { avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" },
-    ],
-    bookmarked: false,
-  },
-];
-
-interface ForumFeedProps {
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
-}
-
-export function ForumFeed({ activeTab, onTabChange }: ForumFeedProps) {
-  const [newPost, setNewPost] = useState("");
-  const [posts, setPosts] = useState(forumPosts);
-  const router = useRouter();
-
-  const toggleBookmark = (postId: string) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId ? { ...post, bookmarked: !post.bookmarked } : post
-      )
-    );
+  // updated by gemini: Time formatter for "4:26 AM" style
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
-  const highlightText = (text: string, highlights: string[]) => {
-    let result = text;
-    for (const highlight of highlights) {
-      result = result.replace(
-        new RegExp(`(${highlight})`, "gi"),
-        '<strong class="font-semibold text-foreground">$1</strong>'
-      );
+  const loadData = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const currentMode = propMaskMode || await getCurrentMode(userId);
+      const tableName = currentMode === 'mentor' ? 'mentors' : 'mentees';
+      const { data: maskedData } = await supabase.from(tableName).select('masked_name').eq('user_id', userId).maybeSingle();
+      
+      setCurrentMaskedName(maskedData?.masked_name || 'Anonymous');
+
+      const data = await getForumPosts();
+      const postsWithCounts = await Promise.all(data.map(async (post: any) => {
+        const { count } = await supabase.from('forum_responses').select('*', { count: 'exact', head: true }).eq('post_id', post.post_id);
+        return { ...post, response_count: count || 0 };
+      }));
+      setPosts(postsWithCounts);
+    } catch (error) {
+      console.error('Load Error:', error);
+    } finally {
+      setLoading(false);
     }
-    return result;
+  }, [userId, propMaskMode]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // updated by gemini: Load responses for selected thread
+  const loadResponses = async (postId: string) => {
+    setLoadingResponses(true);
+    const { data, error } = await supabase
+      .from('forum_responses')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+    
+    if (!error) setResponses(data || []);
+    setLoadingResponses(false);
   };
 
-  const handleTabClick = (tab: string, path: string) => {
-    if (onTabChange) {
-      onTabChange(tab);
+  useEffect(() => {
+    if (selectedPost) loadResponses(selectedPost.post_id);
+  }, [selectedPost]);
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('forum_posts').insert([{
+        user_id: userId,
+        title: newPost.title,
+        content: newPost.content,
+        masked_name: currentMaskedName,
+        is_anonymous: true
+      }]);
+      if (error) throw error;
+      setNewPost({ title: '', content: '', tags: '' });
+      setShowCreateModal(false);
+      loadData();
+    } finally {
+      setIsSubmitting(false);
     }
-    router.push(path);
   };
 
-  return (
-    <div className="flex h-full flex-1 flex-col overflow-hidden">
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {/* New Thread Input */}
-        <div className="mb-6 flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm">
-          <div className="h-10 w-10 rounded-full bg-slate-300" />
-          <input
-            type="text"
-            placeholder="Add a new thread"
-            value={newPost}
-            onChange={(e) => setNewPost(e.target.value)}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/25 transition-all hover:bg-accent/90">
-            <Plus className="h-5 w-5" />
-          </button>
+  const handlePostResponse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newResponse.trim() || !selectedPost || isSubmitting) return;
+    setIsSubmitting(true);
+    
+    try {
+      // updated by gemini: Insert the actual masked_name of the responder
+      const { error } = await supabase.from('forum_responses').insert([{
+        post_id: selectedPost.post_id,
+        user_id: userId,
+        content: newResponse.trim(),
+        masked_name: currentMaskedName 
+      }]);
+
+      if (error) throw error;
+      
+      setNewResponse("");
+      await loadResponses(selectedPost.post_id);
+      loadData(); 
+    } catch (err) {
+      console.error("Reply Error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // updated by gemini: THREAD VIEW (Individual Post + Responses)
+  if (selectedPost) {
+    return (
+      <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
+        <div className="p-6 border-b flex items-center gap-4">
+          <button onClick={() => setSelectedPost(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ArrowLeft /></button>
+          <h2 className="font-black text-xl text-gray-900 truncate">{selectedPost.title}</h2>
+        </div>
+        <div className="flex-1 overflow-auto p-8 space-y-8">
+          {/* Main Thread Body */}
+          <div className="bg-cyan-50/50 p-8 rounded-[2rem] border border-cyan-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-xl bg-cyan-500 text-white flex items-center justify-center font-bold">
+                {selectedPost.masked_name?.charAt(0)}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">@{selectedPost.masked_name}</p>
+                <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">{formatTime(selectedPost.created_at)}</p>
+              </div>
+            </div>
+            <p className="text-gray-700 leading-relaxed text-lg">{selectedPost.content}</p>
+          </div>
+
+          {/* Response List */}
+          <div className="space-y-6">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-2">Discussion Responses</h4>
+            {loadingResponses ? (
+              <p className="text-sm text-gray-400 ml-2">Loading responses...</p>
+            ) : responses.length === 0 ? (
+              <p className="text-sm text-gray-400 italic ml-2">No responses yet.</p>
+            ) : (
+              responses.map((res) => (
+                <div key={res.response_id} className="flex gap-4 group">
+                  <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {res.masked_name?.charAt(0) || 'R'}
+                  </div>
+                  <div className="flex-1 bg-gray-50 p-4 rounded-2xl border border-transparent group-hover:bg-white group-hover:border-gray-100 transition-all">
+                    <div className="flex justify-between mb-1">
+                      {/* updated by gemini: Show responder's masked name */}
+                      <span className="text-xs font-bold text-cyan-600 italic">
+                        @{res.masked_name || 'Anonymous'}
+                      </span>
+                      <span className="text-[10px] text-gray-400">{formatTime(res.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed">{res.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Posts */}
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <article
-              key={post.id}
-              className="rounded-3xl bg-card p-6 shadow-sm transition-all hover:shadow-md"
+        {/* Reply Input */}
+        <div className="p-6 border-t bg-white">
+          <form onSubmit={handlePostResponse} className="flex gap-3 bg-gray-50 p-2 rounded-2xl border focus-within:border-cyan-400 transition-all shadow-sm">
+            <input 
+              placeholder={`Reply as ${currentMaskedName}...`} 
+              className="flex-1 bg-transparent px-4 py-2 outline-none text-sm" 
+              value={newResponse} 
+              onChange={(e) => setNewResponse(e.target.value)} 
+            />
+            <button 
+              type="submit" 
+              disabled={!newResponse.trim() || isSubmitting}
+              className="bg-gray-900 text-white p-3 rounded-xl hover:bg-black transition-colors disabled:opacity-30"
             >
-              {/* Title */}
-              <h2 className="mb-4 text-xl font-bold text-primary">
-                {post.title}
-              </h2>
-
-              {/* Author & Tags */}
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {post.author.isAnonymous ? (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Ghost className="h-5 w-5 text-primary" />
-                    </div>
-                  ) : (
-                    <div className="h-10 w-10 rounded-full border-2 border-pink-300 bg-slate-300" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {post.author.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {post.timeAgo}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className={cn(
-                        "rounded-full px-3 py-1 text-xs font-medium",
-                        tag === "Accounting"
-                          ? "border border-accent text-accent"
-                          : tag === "Corporate law"
-                            ? "bg-accent text-accent-foreground"
-                            : "border border-primary/30 text-primary"
-                      )}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Content */}
-              <div
-                className="mb-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground"
-                dangerouslySetInnerHTML={{
-                  __html: highlightText(post.content, post.highlightedWords),
-                }}
-              />
-
-              {/* Actions */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => toggleBookmark(post.id)}
-                    className={cn(
-                      "rounded-lg p-2 transition-colors",
-                      post.bookmarked
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted"
-                    )}
-                  >
-                    <Bookmark
-                      className={cn("h-5 w-5", post.bookmarked && "fill-current")}
-                    />
-                  </button>
-                  <button className="flex items-center gap-2 rounded-xl bg-muted px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/80">
-                    <MessageCircle className="h-4 w-4" />
-                    Add Response
-                  </button>
-                </div>
-
-                {/* Response Avatars */}
-                <div className="flex items-center">
-                  <div className="flex -space-x-2">
-                    {post.responses.map((response, idx) => (
-                      <div
-                        key={idx}
-                        className="h-8 w-8 rounded-full border-2 border-card bg-slate-300"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Anonymous Post Actions */}
-              {post.author.isAnonymous && (
-                <div className="mt-4 flex items-center gap-3 border-t border-border/50 pt-4">
-                  <button className="flex items-center gap-2 rounded-xl bg-accent/10 px-4 py-2 text-sm font-medium text-accent transition-colors hover:bg-accent/20">
-                    <Ghost className="h-4 w-4" />
-                    Reveal Identity
-                  </button>
-                  <button className="flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
-                    <Send className="h-4 w-4" />
-                    Request
-                  </button>
-                </div>
-              )}
-            </article>
-          ))}
+              <Send size={18} />
+            </button>
+          </form>
         </div>
       </div>
+    );
+  }
+
+  // updated by gemini: MAIN FEED VIEW
+  return (
+    <div className="flex flex-col h-full bg-[#F8F9FB] p-8 overflow-hidden">
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Community Forum</h1>
+          <p className="text-gray-500 mt-1">Discuss and grow anonymously with others.</p>
+        </div>
+        <button 
+          onClick={() => setShowCreateModal(true)} 
+          className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-cyan-200 transition-all active:scale-95 flex items-center gap-2"
+        >
+          <Plus size={20}/> New Thread
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-auto space-y-6 pr-2">
+        {loading ? ( 
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mb-4" />
+            <p>Gathering discussions...</p>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <div 
+              key={post.post_id} 
+              onClick={() => setSelectedPost(post)} 
+              className="bg-white rounded-3xl p-6 border border-gray-100 hover:border-cyan-200 hover:shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex gap-6">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 text-white flex items-center justify-center text-xl font-black shrink-0">
+                  {post.masked_name?.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-3 py-1 rounded-full border border-cyan-100 italic">
+                      @{post.masked_name}
+                    </span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock size={12} /> {formatTime(post.created_at)}
+                    </span>
+                  </div>
+                  <h4 className="text-xl font-extrabold text-gray-900 group-hover:text-cyan-600 mb-2 transition-colors">
+                    {post.title}
+                  </h4>
+                  <p className="text-gray-600 line-clamp-2 leading-relaxed mb-4">{post.content}</p>
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                    <div className="flex items-center gap-1 text-cyan-600 font-bold text-sm bg-cyan-50/50 px-3 py-1.5 rounded-xl group-hover:bg-cyan-50 transition-colors">
+                      <MessageSquare size={16} /> {post.response_count} Responses
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* updated by gemini: CREATE MODAL */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white p-10 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Create Thread</h2>
+                <div className="mt-2 bg-cyan-50 border border-cyan-100 px-3 py-1.5 rounded-full w-fit">
+                   <p className="text-[10px] font-black text-cyan-700 uppercase tracking-widest">Posting as: {currentMaskedName}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors p-2 hover:bg-gray-100 rounded-full">
+                <X size={24}/>
+              </button>
+            </div>
+            <form onSubmit={handleCreatePost} className="space-y-6">
+              <input 
+                placeholder="Title" 
+                className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:bg-white focus:border-cyan-400 font-bold text-gray-900 transition-all" 
+                value={newPost.title} 
+                onChange={e => setNewPost({...newPost, title: e.target.value})} 
+                required 
+              />
+              <textarea 
+                placeholder="What's on your mind?" 
+                className="w-full p-4 bg-gray-50 border rounded-2xl h-40 outline-none focus:bg-white focus:border-cyan-400 resize-none leading-relaxed transition-all" 
+                value={newPost.content} 
+                onChange={e => setNewPost({...newPost, content: e.target.value})} 
+                required 
+              />
+              <div className="flex gap-4 pt-2">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 font-bold text-gray-400 hover:text-gray-600">Discard</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="flex-[2] p-4 bg-gray-900 text-white rounded-2xl font-black shadow-xl hover:bg-black transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Publishing...' : 'Publish Thread'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

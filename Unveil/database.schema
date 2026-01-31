@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS mentors (
 -- Signals Table (linked to user, not specific role)
 CREATE TABLE IF NOT EXISTS signals (
   signal_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(user_id),
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- updated by gemini
   title VARCHAR(200) NOT NULL,
   description TEXT NOT NULL,
   tags TEXT[] NOT NULL DEFAULT '{}',
@@ -54,26 +54,26 @@ CREATE TABLE IF NOT EXISTS signals (
 );
 
 -- Signal Chat Table
-CREATE TABLE IF NOT EXISTS signalChat (
-  signalChatID UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  signal_id UUID NOT NULL REFERENCES signals(signal_id),
+CREATE TABLE IF NOT EXISTS signalchat ( -- updated by gemini: lowercased for stability
+  signalchatid UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- updated by gemini: lowercased
+  signal_id UUID NOT NULL REFERENCES signals(signal_id) ON DELETE CASCADE, -- updated by gemini: added cascade
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
 -- Signal Chat Users Table
-CREATE TABLE IF NOT EXISTS signalChatUsers (
-  signalChatID UUID NOT NULL REFERENCES signalChat(signalChatID),
-  user_id UUID NOT NULL REFERENCES users(user_id),
+CREATE TABLE IF NOT EXISTS signalchatusers ( -- updated by gemini: lowercased
+  signalchatid UUID NOT NULL REFERENCES signalchat(signalchatid) ON DELETE CASCADE, -- updated by gemini: added cascade
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'mentor')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  PRIMARY KEY (signalChatID, user_id)
+  PRIMARY KEY (signalchatid, user_id) -- updated by gemini: lowercased
 );
 
 -- Signal Messages Table
-CREATE TABLE IF NOT EXISTS signalMessages (
+CREATE TABLE IF NOT EXISTS signalmessages ( -- updated by gemini: lowercased
   message_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  signalChatID UUID NOT NULL REFERENCES signalChat(signalChatID),
-  sender_id UUID NOT NULL REFERENCES users(user_id),
+  signalchatid UUID NOT NULL REFERENCES signalchat(signalchatid) ON DELETE CASCADE, -- updated by gemini: added cascade
+  sender_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -81,11 +81,12 @@ CREATE TABLE IF NOT EXISTS signalMessages (
 -- Forum Posts Table
 CREATE TABLE IF NOT EXISTS forum_posts (
   post_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(user_id),
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   title VARCHAR(200) NOT NULL,
   content TEXT NOT NULL,
   tags TEXT[] NOT NULL DEFAULT '{}',
   is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
+  masked_name VARCHAR(100), -- updated by gemini
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -94,15 +95,16 @@ CREATE TABLE IF NOT EXISTS forum_posts (
 CREATE TABLE IF NOT EXISTS forum_responses (
   response_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   post_id UUID NOT NULL REFERENCES forum_posts(post_id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(user_id),
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   content TEXT NOT NULL,
+  masked_name VARCHAR(100), -- updated by gemini
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
 -- Forum Bookmarks Table
 CREATE TABLE IF NOT EXISTS forum_bookmarks (
   bookmark_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(user_id),
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   post_id UUID NOT NULL REFERENCES forum_posts(post_id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   UNIQUE(user_id, post_id)
@@ -122,16 +124,17 @@ CREATE TABLE IF NOT EXISTS connections (
 CREATE INDEX IF NOT EXISTS idx_signals_user_id ON signals(user_id);
 CREATE INDEX IF NOT EXISTS idx_signals_status ON signals(status);
 CREATE INDEX IF NOT EXISTS idx_signals_created_at ON signals(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_signalChat_signal_id ON signalChat(signal_id);
-CREATE INDEX IF NOT EXISTS idx_signalChatUsers_signalChatID ON signalChatUsers(signalChatID);
-CREATE INDEX IF NOT EXISTS idx_signalChatUsers_user_id ON signalChatUsers(user_id);
-CREATE INDEX IF NOT EXISTS idx_signalMessages_signalChatID ON signalMessages(signalChatID);
-CREATE INDEX IF NOT EXISTS idx_signalMessages_created_at ON signalMessages(created_at);
+CREATE INDEX IF NOT EXISTS idx_signalchat_signal_id ON signalchat(signal_id); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_signalchatusers_signalchatid ON signalchatusers(signalchatid); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_signalchatusers_user_id ON signalchatusers(user_id);
+CREATE INDEX IF NOT EXISTS idx_signalmessages_signalchatid ON signalmessages(signalchatid); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_signalmessages_created_at ON signalmessages(created_at);
 CREATE INDEX IF NOT EXISTS idx_mentees_user_id ON mentees(user_id);
 CREATE INDEX IF NOT EXISTS idx_mentors_user_id ON mentors(user_id);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_user_id ON forum_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_created_at ON forum_posts(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_forum_responses_post_id ON forum_responses(post_id);
+CREATE INDEX IF NOT EXISTS idx_forum_posts_masked_name ON forum_posts(masked_name); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_forum_responses_post_id ON forum_responses(post_id); -- updated by gemini
 CREATE INDEX IF NOT EXISTS idx_forum_bookmarks_user_id ON forum_bookmarks(user_id);
 CREATE INDEX IF NOT EXISTS idx_connections_user_id ON connections(user_id);
 CREATE INDEX IF NOT EXISTS idx_connections_connected_user_id ON connections(connected_user_id);
@@ -139,9 +142,9 @@ CREATE INDEX IF NOT EXISTS idx_connections_connected_user_id ON connections(conn
 -- DISABLE ROW LEVEL SECURITY for easy prototyping
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE signals DISABLE ROW LEVEL SECURITY;
-ALTER TABLE signalChat DISABLE ROW LEVEL SECURITY;
-ALTER TABLE signalChatUsers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE signalMessages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE signalchat DISABLE ROW LEVEL SECURITY; -- updated by gemini
+ALTER TABLE signalchatusers DISABLE ROW LEVEL SECURITY; -- updated by gemini
+ALTER TABLE signalmessages DISABLE ROW LEVEL SECURITY; -- updated by gemini
 ALTER TABLE mentees DISABLE ROW LEVEL SECURITY;
 ALTER TABLE mentors DISABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts DISABLE ROW LEVEL SECURITY;
@@ -158,32 +161,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Drop existing triggers if they exist
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-DROP TRIGGER IF EXISTS update_signals_updated_at ON signals;
-DROP TRIGGER IF EXISTS update_mentees_updated_at ON mentees;
-DROP TRIGGER IF EXISTS update_mentors_updated_at ON mentors;
-
 -- Create triggers for updated_at
-CREATE TRIGGER update_users_updated_at
-  BEFORE UPDATE ON users
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_signals_updated_at
-  BEFORE UPDATE ON signals
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_mentees_updated_at
-  BEFORE UPDATE ON mentees
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_mentors_updated_at
-  BEFORE UPDATE ON mentors
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_signals_updated_at BEFORE UPDATE ON signals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_mentees_updated_at BEFORE UPDATE ON mentees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_mentors_updated_at BEFORE UPDATE ON mentors FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Comments for documentation
 COMMENT ON TABLE users IS 'Main user table with authentication data (not role-specific)';
@@ -192,9 +174,9 @@ COMMENT ON TABLE mentors IS 'Mentor accounts - separate identities for providing
 COMMENT ON COLUMN mentees.masked_name IS 'Anonymous identity when in mentee mode';
 COMMENT ON COLUMN mentors.masked_name IS 'Anonymous identity when in mentor mode';
 COMMENT ON TABLE signals IS 'Main table for help requests/signals from users';
-COMMENT ON TABLE signalChat IS 'Chat rooms created for each signal';
-COMMENT ON TABLE signalChatUsers IS 'Tracks users participating in signal chats';
-COMMENT ON TABLE signalMessages IS 'Messages sent within signal chat rooms';
+COMMENT ON TABLE signalchat IS 'Chat rooms created for each signal'; -- updated by gemini
+COMMENT ON TABLE signalchatusers IS 'Tracks users participating in signal chats'; -- updated by gemini
+COMMENT ON TABLE signalmessages IS 'Messages sent within signal chat rooms'; -- updated by gemini
 COMMENT ON TABLE forum_posts IS 'Forum posts and discussions';
 COMMENT ON TABLE forum_responses IS 'Comments/responses to forum posts';
 COMMENT ON TABLE forum_bookmarks IS 'Users bookmarked forum posts';

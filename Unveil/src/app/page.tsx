@@ -13,6 +13,7 @@ export default function HomePage() {
   const [user, setUser] = useState<User & { masked_name?: string } | null>(null);
   const [maskMode, setMaskMode] = useState<'student' | 'mentor'>('student');
   const [userId, setUserId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadCurrentUser();
@@ -42,6 +43,7 @@ export default function HomePage() {
         setUser({ ...userData, masked_name: maskedData?.masked_name });
       }
     }
+    setIsLoading(false);
   };
 
   const handleMaskModeChange = async (newMode: 'student' | 'mentor') => {
@@ -51,7 +53,7 @@ export default function HomePage() {
 
   const handleSwapComplete = async (newMode: 'student' | 'mentor') => {
     if (!userId) return;
-
+    // Refresh local user state after identity swap
     const tableName = newMode === 'mentor' ? 'mentors' : 'mentees';
     const { data: maskedData } = await supabase
       .from(tableName)
@@ -64,16 +66,18 @@ export default function HomePage() {
     }
   };
 
+  if (isLoading) return null; // Prevent flash of empty state
+
   return (
     <AuthGuard>
-      <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-pink-100/50 via-background to-violet-100/50">
-        {/* Left Sidebar */}
+      <div className="flex h-screen w-full overflow-hidden bg-[#F8F9FB]">
         <Sidebar maskMode={maskMode} setMaskMode={handleMaskModeChange} userId={userId} onSwapComplete={handleSwapComplete} />
 
-        {/* Main Forum Feed */}
-        <ForumFeed activeTab={activeTab} onTabChange={setActiveTab} />
+        {/* FIXED: Passing userId and maskMode props */}
+        <div className="flex-1 overflow-hidden">
+           {userId && <ForumFeed userId={userId} maskMode={maskMode} />}
+        </div>
 
-        {/* Right Profile Panel */}
         <ProfilePanel user={user} maskMode={maskMode} setMaskMode={handleMaskModeChange} userId={userId} />
       </div>
     </AuthGuard>

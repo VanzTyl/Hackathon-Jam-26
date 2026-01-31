@@ -30,6 +30,7 @@ export default function SignalsPage() {
   const [currentMaskedName, setCurrentMaskedName] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [helpingSignalIds, setHelpingSignalIds] = useState<Set<string>>(new Set())
+  const [helpingMenteeIds, setHelpingMenteeIds] = useState<Set<string>>(new Set())
   const [isRequestingHelp, setIsRequestingHelp] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>('All')
   const [reviewingSignal, setReviewingSignal] = useState<Signal | null>(null)
@@ -96,11 +97,16 @@ export default function SignalsPage() {
 
   const loadMentorHelpRequests = async () => {
     if (!userId) return
-    const { data } = await supabase.from('signals').select('signal_id').eq('assigned_mentor_user_id', userId)
+    const { data } = await supabase.from('signals').select('signal_id, user_id').eq('assigned_mentor_user_id', userId)
     setHelpingSignalIds(new Set(data?.map(s => s.signal_id) || []))
+    setHelpingMenteeIds(new Set(data?.map(s => s.user_id) || []))
   }
 
   // --- Actions ---
+
+  const isAlreadyHelpingMentee = (signal: Signal) => {
+    return helpingMenteeIds.has(signal.user_id);
+  };
 
   const handleCreateSignal = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -125,6 +131,12 @@ export default function SignalsPage() {
 
   const handleRequestToHelp = async (signal: Signal) => {
     if (!userId) return
+    
+    if (isAlreadyHelpingMentee(signal)) {
+      alert('You are already helping this mentee. Please complete your current session with them before taking on another request from the same mentee.');
+      return;
+    }
+    
     setIsRequestingHelp(signal.signal_id)
     try {
       await createMentorHelpRequest(signal.signal_id, userId, signal.user_id)
@@ -340,10 +352,15 @@ export default function SignalsPage() {
                       {maskMode === 'mentor' && signal.status === 'open' && !helpingSignalIds.has(signal.signal_id) && (
                         <button
                           onClick={() => handleRequestToHelp(signal)}
-                          disabled={isRequestingHelp === signal.signal_id}
-                          className="bg-cyan-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-cyan-600 disabled:opacity-50"
+                          disabled={isRequestingHelp === signal.signal_id || isAlreadyHelpingMentee(signal)}
+                          className={`px-4 py-2 rounded-lg text-sm disabled:opacity-50 ${
+                            isAlreadyHelpingMentee(signal)
+                              ? 'bg-gray-400 text-white cursor-not-allowed'
+                              : 'bg-cyan-500 text-white hover:bg-cyan-600'
+                          }`}
+                          title={isAlreadyHelpingMentee(signal) ? 'You are already helping this mentee' : ''}
                         >
-                          {isRequestingHelp === signal.signal_id ? 'Requesting...' : 'Help'}
+                          {isAlreadyHelpingMentee(signal) ? 'Already Helping' : (isRequestingHelp === signal.signal_id ? 'Requesting...' : 'Help')}
                         </button>
                       )}
                       

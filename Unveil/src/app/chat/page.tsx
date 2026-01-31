@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, FormEvent } from "react";
-import { Send, Search, MoreHorizontal, LogOut, RefreshCw, Eye, Home, Signal, MessageSquare, Users, X } from "lucide-react";
+import { Send, Search, RefreshCw, X } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
 import AuthGuard from "@/components/AuthGuard";
 import { supabase } from "@/supabase-client";
@@ -11,8 +11,6 @@ import {
   getSignals,
   getSignalChat,
   getSignalMessages,
-  createSignalMessage,
-  getSignalChatUsers,
   updateSignal 
 } from "@/lib/database";
 
@@ -56,7 +54,9 @@ export default function ChatPage() {
 
   const loadActiveSessions = async () => {
     try {
-      const allSignals = await getSignals(userId);
+      setLoading(true);
+      const allSignals = await getSignals();
+      // Filter for sessions where user is either the seeker or the helper and status is 'helping'
       const active = allSignals.filter(s => 
         s.status === 'helping' && 
         (s.user_id === userId || s.assigned_mentor_user_id === userId)
@@ -73,34 +73,28 @@ export default function ChatPage() {
     if (!selectedSession) return;
     
     try {
+      // 1. Get the chat room (uses lowercase 'signalchat' table internally)
       let chatData = await getSignalChat(selectedSession.signal_id);
       
+      // 2. If it doesn't exist, create it (matching lowercase schema)
       if (!chatData) {
-        console.log('Chat room not found, creating one...');
         const { data: newChatData, error: createError } = await supabase
-          .from('signalChat')
+          .from('signalchat')
           .insert([{ signal_id: selectedSession.signal_id }])
           .select('*')
-          .maybeSingle();
+          .single();
         
-        if (createError) {
-          console.error('Error creating chat:', createError);
-          alert('Failed to create chat room: ' + (createError.message || 'Unknown error'));
-          return;
-        }
-        console.log('Chat room created:', newChatData);
+        if (createError) throw createError;
         chatData = newChatData;
       }
       
       if (chatData) {
-        console.log('Loading messages for chat:', chatData.signalChatID);
-        const msgs = await getSignalMessages(chatData.signalChatID);
-        console.log('Loaded messages:', msgs);
+        // 3. Fetch messages using the lowercase ID property
+        const msgs = await getSignalMessages(chatData.signalchatid);
         setMessages(msgs);
       }
     } catch (error: any) {
       console.error('Error loading messages:', error);
-      alert('Failed to load messages: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -108,15 +102,18 @@ export default function ChatPage() {
     if (!selectedSession || !userId) return;
 
     try {
+      // Identify the ID of the person we are talking to
       const otherUserId = selectedSession.user_id === userId 
         ? selectedSession.assigned_mentor_user_id 
         : selectedSession.user_id;
       
       if (!otherUserId) return;
 
-      const tableName = maskMode === 'student' ? 'mentors' : 'mentees';
+      // Determine if we need to look at the Mentor or Mentee table for their name
+      const targetTable = selectedSession.user_id === otherUserId ? 'mentees' : 'mentors';
+      
       const { data } = await supabase
-        .from(tableName)
+        .from(targetTable)
         .select('masked_name')
         .eq('user_id', otherUserId)
         .maybeSingle();
@@ -127,47 +124,23 @@ export default function ChatPage() {
     }
   };
 
-  const handleEnterSession = (session: Signal) => {
-    setSelectedSession(session);
-  };
-
   const handleSendMessage = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || !selectedSession || !userId) return;
 
     try {
-      let chatData = await getSignalChat(selectedSession.signal_id);
-      
-      if (!chatData) {
-        const { data: newChatData, error: createError } = await supabase
-          .from('signalChat')
-          .insert([{ signal_id: selectedSession.signal_id }])
-          .select('*')
-          .maybeSingle();
-        
-        if (createError) {
-          console.error('Error creating chat:', createError);
-          alert('Failed to create chat room: ' + createError.message);
-          return;
-        }
-        chatData = newChatData;
-      }
-      
+      const chatData = await getSignalChat(selectedSession.signal_id);
       if (chatData) {
         const { error: insertError } = await supabase
-          .from('signalMessages')
+          .from('signalmessages')
           .insert([{
-            signalChatID: chatData.signalChatID,
+            signalchatid: chatData.signalchatid,
             sender_id: userId,
             content: trimmed
           }]);
         
-        if (insertError) {
-          console.error('Error inserting message:', insertError);
-          alert('Failed to send message: ' + insertError.message);
-          return;
-        }
+        if (insertError) throw insertError;
         
         setInput("");
         inputRef.current?.focus();
@@ -175,12 +148,11 @@ export default function ChatPage() {
       }
     } catch (error: any) {
       console.error('Error sending message:', error);
-      alert('Failed to send message: ' + (error.message || 'Unknown error'));
     }
   };
 
   const handleEndSession = async () => {
-    if (!selectedSession || !confirm('Are you sure you want to end this session?')) return;
+    if (!selectedSession || !confirm('Are you sure you want to end this help session?')) return;
 
     setIsEndingSession(true);
     try {
@@ -194,104 +166,84 @@ export default function ChatPage() {
     }
   };
 
-  const handleSwapComplete = async (newMode: 'student' | 'mentor') => {
-    if (!userId) return;
-
+  const handleSwapComplete = async () => {
     window.location.reload();
   };
 
   if (selectedSession) {
     return (
       <AuthGuard>
-        <div className="h-screen bg-[#F8F9FB] text-gray-800">
-          <div className="h-full flex gap-0">
-            {/* Left dashboard sidebar */}
-            <Sidebar maskMode={maskMode} setMaskMode={setMaskMode} userId={userId} onSwapComplete={handleSwapComplete} />
-
-            {/* Center content: chat */}
-            <div className="flex-1 overflow-auto h-full">
-              <div className="h-full grid grid-cols-12 gap-0 items-stretch">
-                {/* Chat Window */}
-                <div className="col-span-12 bg-white rounded-0 shadow-sm h-full flex flex-col overflow-hidden">
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => setSelectedSession(null)}
-                        className="p-2 hover:bg-gray-100 rounded-lg"
-                      >
-                        <X size={20} />
-                      </button>
-                      <div className="w-12 h-12 rounded-full bg-cyan-500 text-white flex items-center justify-center font-semibold">
-                        {otherUser?.masked_name?.charAt(0) || '?'}
-                      </div>
-                      <div>
-                        <div className="text-md font-semibold">{otherUser?.masked_name || 'Unknown'}</div>
-                        <div className="flex items-center gap-2 text-xs text-green-500">
-                          <span className="w-2 h-2 bg-green-500 rounded-full inline-block" />
-                          Online
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm text-gray-500">Session Active</div>
-                      {maskMode === 'student' && (
-                        <button
-                          onClick={handleEndSession}
-                          disabled={isEndingSession}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 disabled:opacity-50"
-                        >
-                          {isEndingSession ? 'Ending...' : 'End Session'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 p-6 overflow-auto bg-transparent">
-                    <div className="space-y-4">
-                      {messages.length === 0 ? (
-                        <div className="text-center text-gray-500 py-10">
-                          No messages yet. Start the conversation!
-                        </div>
-                      ) : (
-                        messages.map((m) => (
-                          <div key={m.message_id} className={`flex ${m.sender_id === userId ? "justify-end" : "justify-start"}`}>
-                            <div
-                              className={`px-4 py-2 text-sm leading-snug max-w-[78%] ${
-                                m.sender_id === userId
-                                  ? "bg-[#0084FF] text-white rounded-[18px] rounded-br-[6px]"
-                                  : "bg-[#F0F2F5] text-gray-800 rounded-[18px] rounded-bl-[6px]"
-                              }`}
-                            >
-                              {m.content}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSendMessage} className="border-t border-gray-100 px-6 py-4 bg-white">
-                    <div className="flex items-center gap-3">
-                      <input
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-gray-50 border border-gray-100 rounded-full py-3 px-4 text-sm focus:outline-none"
-                      />
-                      <button
-                        type="submit"
-                        aria-label="Send message"
-                        className="w-12 h-12 bg-[#0084FF] rounded-full inline-flex items-center justify-center text-white hover:brightness-90 shadow"
-                      >
-                        <Send size={18} />
-                      </button>
-                    </div>
-                  </form>
+        <div className="h-screen bg-[#F8F9FB] flex overflow-hidden">
+          <Sidebar maskMode={maskMode} setMaskMode={setMaskMode} userId={userId} onSwapComplete={handleSwapComplete} />
+          
+          <main className="flex-1 flex flex-col h-full bg-white">
+            {/* Chat Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setSelectedSession(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X size={20} />
+                </button>
+                <div className="w-10 h-10 rounded-full bg-cyan-500 text-white flex items-center justify-center font-bold">
+                  {otherUser?.masked_name?.charAt(0) || '?'}
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">{otherUser?.masked_name || 'Anonymous User'}</h2>
+                  <p className="text-xs text-green-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Active Now
+                  </p>
                 </div>
               </div>
+              <button
+                onClick={handleEndSession}
+                disabled={isEndingSession}
+                className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+              >
+                {isEndingSession ? 'Closing...' : 'End Session'}
+              </button>
             </div>
-          </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-2">
+                  <p>No messages yet.</p>
+                  <p className="text-sm">Introduce yourself and start the conversation!</p>
+                </div>
+              ) : (
+                messages.map((m) => (
+                  <div key={m.message_id} className={`flex ${m.sender_id === userId ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
+                      m.sender_id === userId 
+                        ? "bg-cyan-500 text-white rounded-tr-none" 
+                        : "bg-white border border-gray-100 text-gray-800 rounded-tl-none shadow-sm"
+                    }`}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input Area */}
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100">
+              <div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-2 border border-gray-200 focus-within:border-cyan-500 transition-colors">
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2"
+                />
+                <button 
+                  type="submit" 
+                  disabled={!input.trim()}
+                  className="p-2 bg-cyan-500 text-white rounded-full hover:bg-cyan-600 disabled:opacity-50 transition-colors"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            </form>
+          </main>
         </div>
       </AuthGuard>
     );
@@ -299,78 +251,69 @@ export default function ChatPage() {
 
   return (
     <AuthGuard>
-      <div className="h-screen bg-[#F8F9FB] text-gray-800">
-        <div className="h-full flex gap-0">
-          {/* Left dashboard sidebar */}
-          <Sidebar maskMode={maskMode} setMaskMode={setMaskMode} userId={userId} onSwapComplete={handleSwapComplete} />
-
-          {/* Center content: sessions list */}
-          <div className="flex-1 overflow-auto h-full">
-            <div className="h-full">
-              <div className="bg-white rounded-0 p-6 shadow-sm h-full">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="relative flex-1">
-                    <input
-                      placeholder="Search sessions..."
-                      className="w-full border border-gray-100 rounded-full py-2 px-3 text-sm bg-gray-50"
-                    />
-                    <Search className="absolute right-3 top-2.5 text-gray-400" size={16} />
-                  </div>
-                  <button
-                    onClick={loadActiveSessions}
-                    className="p-2 hover:bg-gray-100 rounded-lg"
-                  >
-                    <RefreshCw size={20} className="text-gray-400" />
-                  </button>
-                </div>
-
-                <h2 className="text-xl font-bold mb-4">Active Sessions</h2>
-
-                <div className="flex-1 overflow-auto">
-                  {loading ? (
-                    <div className="text-center text-gray-500 py-10">Loading sessions...</div>
-                  ) : activeSessions.length === 0 ? (
-                    <div className="text-center text-gray-500 py-10">
-                      No active sessions. Go to Signals to help or request help!
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {activeSessions.map((session) => {
-                        const otherUserId = session.user_id === userId 
-                          ? session.assigned_mentor_user_id 
-                          : session.user_id;
-                        
-                        const isMentee = session.user_id === userId;
-                        
-                        return (
-                          <div key={session.signal_id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50">
-                            <div className="w-12 h-12 rounded-full bg-cyan-500 text-white flex items-center justify-center font-semibold">
-                              {isMentee ? 'M' : 'S'}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="text-sm font-medium">{isMentee ? 'Mentor' : 'Mentee'}</div>
-                                  <div className="text-xs text-gray-400 mt-1">{session.title}</div>
-                                </div>
-                                <button
-                                  onClick={() => handleEnterSession(session)}
-                                  className="px-4 py-2 bg-cyan-500 text-white rounded-lg text-sm hover:bg-cyan-600"
-                                >
-                                  Enter Session
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+      <div className="h-screen bg-[#F8F9FB] flex overflow-hidden">
+        <Sidebar maskMode={maskMode} setMaskMode={setMaskMode} userId={userId} onSwapComplete={handleSwapComplete} />
+        
+        <main className="flex-1 flex flex-col p-8 overflow-y-auto">
+          <div className="max-w-4xl w-full mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Your Chat Sessions</h1>
+                <p className="text-gray-500">Pick up where you left off with your mentors or mentees.</p>
               </div>
+              <button 
+                onClick={loadActiveSessions}
+                className="p-2 text-gray-400 hover:text-cyan-500 transition-colors"
+              >
+                <RefreshCw size={20} />
+              </button>
             </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2].map(i => (
+                  <div key={i} className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : activeSessions.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="text-gray-300" size={32} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">No active chats</h3>
+                <p className="text-gray-500 mt-2">Active help signals you've joined or created will appear here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {activeSessions.map((session) => (
+                  <div 
+                    key={session.signal_id} 
+                    className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-4">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          session.user_id === userId ? "bg-purple-50 text-purple-600" : "bg-cyan-50 text-cyan-600"
+                        }`}>
+                          {session.user_id === userId ? "Seeking Help" : "Providing Help"}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-gray-900 line-clamp-1 mb-2">{session.title}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2">{session.description}</p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => setSelectedSession(session)}
+                      className="mt-6 w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors"
+                    >
+                      Enter Chat Room
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </main>
       </div>
     </AuthGuard>
   );

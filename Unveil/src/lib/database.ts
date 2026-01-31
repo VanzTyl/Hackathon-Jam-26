@@ -53,6 +53,7 @@ export interface ForumPost {
   content: string;
   tags: string[];
   is_anonymous: boolean;
+  masked_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -81,20 +82,20 @@ export interface Connection {
 }
 
 export interface SignalChat {
-  signalChatID: string;
+  signalchatid: string;
   signal_id: string;
   created_at: string;
 }
 
 export interface SignalChatUser {
-  signalChatID: string;
+  signalchatid: string;
   user_id: string;
   role: 'student' | 'mentor';
 }
 
 export interface SignalMessage {
   message_id: string;
-  signalChatID: string;
+  signalchatid: string;
   sender_id: string;
   content: string;
   created_at: string;
@@ -182,17 +183,19 @@ export async function createSignal(signalData: Omit<Signal, 'signal_id' | 'creat
 
   try {
     const { data: chatData, error: chatError } = await supabase
-      .from('signalChat')
+      .from('signalchat') 
       .insert([{ signal_id: signal.signal_id }])
-      .select('*')
+      .select()
       .single();
 
     if (chatError) throw chatError;
 
+    const chatID = chatData.signalchatid;
+
     const { error: userError } = await supabase
-      .from('signalChatUsers')
+      .from('signalchatusers')
       .insert([{
-        signalChatID: chatData.signalChatID,
+        signalchatid: chatID, 
         user_id: signalData.user_id,
         role: 'student'
       }]);
@@ -278,7 +281,7 @@ export async function deleteSignal(signalId: string) {
 
 export async function createSignalChat(signalId: string) {
   const { data, error } = await supabase
-    .from('signalChat')
+    .from('signalchat')
     .insert([{ signal_id: signalId }])
     .select()
     .single();
@@ -290,7 +293,7 @@ export async function createSignalChat(signalId: string) {
 export async function getSignalChat(signalId: string) {
   try {
     const { data, error } = await supabase
-      .from('signalChat')
+      .from('signalchat')
       .select('*')
       .eq('signal_id', signalId)
       .maybeSingle();
@@ -309,8 +312,8 @@ export async function getSignalChat(signalId: string) {
 
 export async function addUserToSignalChat(signalChatId: string, userId: string, role: 'student' | 'mentor') {
   const { data, error } = await supabase
-    .from('signalChatUsers')
-    .insert([{ signalChatID: signalChatId, user_id: userId, role }])
+    .from('signalchatusers')
+    .insert([{ signalchatid: signalChatId, user_id: userId, role }])
     .select()
     .single();
 
@@ -320,7 +323,7 @@ export async function addUserToSignalChat(signalChatId: string, userId: string, 
 
 export async function getSignalChatUsers(signalChatId: string) {
   const { data, error } = await supabase
-    .from('signalChatUsers')
+    .from('signalchatusers')
     .select(`
       *,
       user:users (
@@ -329,7 +332,7 @@ export async function getSignalChatUsers(signalChatId: string) {
         masked_name
       )
     `)
-    .eq('signalChatID', signalChatId);
+    .eq('signalchatid', signalChatId);
 
   if (error) throw error;
   return data || [];
@@ -337,7 +340,7 @@ export async function getSignalChatUsers(signalChatId: string) {
 
 export async function createSignalMessage(messageData: Omit<SignalMessage, 'message_id' | 'created_at' | 'sender'>) {
   const { data, error } = await supabase
-    .from('signalMessages')
+    .from('signalmessages')
     .insert([messageData])
     .select(`
       *,
@@ -356,9 +359,9 @@ export async function createSignalMessage(messageData: Omit<SignalMessage, 'mess
 export async function getSignalMessages(signalChatId: string) {
   try {
     const { data, error } = await supabase
-      .from('signalMessages')
+      .from('signalmessages')
       .select('*')
-      .eq('signalChatID', signalChatId)
+      .eq('signalchatid', signalChatId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -528,6 +531,16 @@ export async function createForumResponse(responseData: Omit<ForumResponse, 'res
   return data;
 }
 
+export async function getForumResponses(postId: string) {
+  const { data, error } = await supabase
+    .from('forum_responses')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 export async function createForumBookmark(bookmarkData: Omit<ForumBookmark, 'bookmark_id' | 'created_at'>) {
   const { data, error } = await supabase
     .from('forum_bookmarks')
@@ -604,7 +617,7 @@ export async function rejectMentorHelpRequest(signalId: string) {
 
 export async function joinSignalChat(signalId: string, mentorUserId: string) {
   const { data: existingChat } = await supabase
-    .from('signalChat')
+    .from('signalchat')
     .select('*')
     .eq('signal_id', signalId)
     .maybeSingle();
@@ -613,23 +626,23 @@ export async function joinSignalChat(signalId: string, mentorUserId: string) {
 
   if (!existingChat) {
     const { data: newChat } = await supabase
-      .from('signalChat')
+      .from('signalchat')
       .insert([{ signal_id: signalId }])
       .select()
       .single();
-    chatId = newChat?.signalChatID;
+    chatId = newChat?.signalchatid;
   } else {
-    chatId = existingChat.signalChatID;
+    chatId = existingChat.signalchatid;
   }
 
   await supabase
-    .from('signalChatUsers')
+    .from('signalchatusers')
     .upsert([{
-      signalChatID: chatId,
+      signalchatid: chatId,
       user_id: mentorUserId,
       role: 'mentor'
     }], {
-      onConflict: 'signalChatID,user_id'
+      onConflict: 'signalchatid,user_id'
     });
 
   return chatId;
