@@ -9,11 +9,14 @@ export default function Home() {
       
       
       <div className='buttons-container'>
-        <Link href="/login">
-          <button className='welcome-button' style={{margin:"20px"}}>
-            Login
-          </button>
-        </Link>
+        <nav className='navigation-bar'>
+          <Link href="/dashboard">
+            <button className='welcome-button' style={{margin:"20px"}}>
+              Login
+            </button>
+          </Link>
+        </nav>
+        
 
         <Link href="/register">
           <button className='welcome-button'>
