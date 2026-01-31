@@ -8,55 +8,55 @@ export default function SignupPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen">
       {/* Left Section - Dark Background */}
-      <div className="w-1/2 bg-slate-950 text-white flex flex-col justify-between p-12">
+      <div className="w-full lg:w-1/2 bg-slate-950 text-white flex flex-col justify-between p-6 sm:p-8 lg:p-12 order-2 lg:order-1">
         {/* Back Button */}
-        <Link href="/welcome" className="text-slate-300 hover:text-white flex items-center gap-2 w-fit">
-          <ArrowLeft className="w-5 h-5" />
+        <Link href="/welcome" className="text-slate-300 hover:text-white flex items-center gap-2 w-fit text-sm sm:text-base">
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           Back to home
         </Link>
 
         {/* Logo and Welcome Message */}
-        <div>
+        <div className="hidden lg:block">
           <div className="w-12 h-12 bg-cyan-400 rounded-lg flex items-center justify-center mb-8">
             <Eye className="w-7 h-7 text-slate-950" />
           </div>
 
-          <h1 className="text-5xl font-bold mb-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
             Join the<br />
             <span className="text-cyan-400">CIIT Community</span>
           </h1>
 
-          <p className="text-slate-400 text-lg leading-relaxed">
+          <p className="text-slate-400 text-base sm:text-lg leading-relaxed">
             Create your account and start connecting with fellow students and faculty. Your voice matters here.
           </p>
         </div>
 
         {/* Benefits List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4 hidden lg:block">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded-full bg-cyan-400 flex items-center justify-center flex-shrink-0">
               <Check className="w-4 h-4 text-slate-950" />
             </div>
-            <span className="text-slate-300">Access all course forums instantly</span>
+            <span className="text-slate-300 text-sm sm:text-base">Access all course forums instantly</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded-full bg-cyan-400 flex items-center justify-center flex-shrink-0">
               <Check className="w-4 h-4 text-slate-950" />
             </div>
-            <span className="text-slate-300">Post anonymously with Mask Mode</span>
+            <span className="text-slate-300 text-sm sm:text-base">Post anonymously with Mask Mode</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded-full bg-cyan-400 flex items-center justify-center flex-shrink-0">
               <Check className="w-4 h-4 text-slate-950" />
             </div>
-            <span className="text-slate-300">Connect directly with classmates</span>
+            <span className="text-slate-300 text-sm sm:text-base">Connect directly with classmates</span>
           </div>
         </div>
 
         {/* Footer Stats */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 hidden lg:flex">
           <div className="flex -space-x-3">
             <div className="w-10 h-10 rounded-full bg-cyan-400 border-2 border-slate-950"></div>
             <div className="w-10 h-10 rounded-full bg-cyan-500 border-2 border-slate-950"></div>
@@ -68,12 +68,12 @@ export default function SignupPage() {
       </div>
 
       {/* Right Section - Light Background */}
-      <div className="w-1/2 bg-slate-50 flex items-center justify-center p-12 overflow-y-auto">
+      <div className="w-full lg:w-1/2 bg-slate-50 flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-y-auto order-1 lg:order-2">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Create your account</h2>
-            <p className="text-slate-600">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Create your account</h2>
+            <p className="text-sm sm:text-base text-slate-600">
               Already have an account?{' '}
               <Link href="/login" className="text-cyan-400 hover:text-cyan-500 font-medium">
                 Log in
@@ -82,31 +82,31 @@ export default function SignupPage() {
           </div>
 
           {/* Form */}
-          <form className="space-y-5">
+          <form className="space-y-4 sm:space-y-5">
             {/* First Name and Last Name */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                   First Name
                 </label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Juan"
-                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                    className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                   Last Name
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Dela Cruz"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                    className="w-full px-4 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -114,42 +114,42 @@ export default function SignupPage() {
 
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                 CIIT Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 <input
                   type="email"
                   placeholder="your.name@ciit.edu.ph"
-                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                  className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* Student ID */}
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                 Student ID
               </label>
               <div className="relative">
-                <IdCard className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <IdCard className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="2024-00001"
-                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                  className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* Role Dropdown */}
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                 Role (Mask)
               </label>
               <div className="relative">
-                <Users className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <select className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent appearance-none bg-white text-slate-600">
+                <Users className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                <select className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent appearance-none bg-white text-slate-600">
                   <option>Select your role</option>
                   <option>Student</option>
                   <option>Faculty</option>
@@ -160,25 +160,25 @@ export default function SignupPage() {
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Create a strong password"
-                  className="w-full pl-12 pr-12 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                  className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
-              <p className="text-xs text-slate-500 mt-2">Must be at least 8 characters</p>
+              <p className="text-xs text-slate-500 mt-1 sm:mt-2">Must be at least 8 characters</p>
             </div>
 
             {/* Terms Checkbox */}
@@ -187,9 +187,9 @@ export default function SignupPage() {
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="w-5 h-5 border border-slate-300 rounded cursor-pointer mt-1 flex-shrink-0"
+                className="w-5 h-5 border border-slate-300 rounded cursor-pointer mt-0.5 sm:mt-1 flex-shrink-0"
               />
-              <span className="text-sm text-slate-600">
+              <span className="text-xs sm:text-sm text-slate-600">
                 I agree to the{' '}
                 <Link href="/terms" className="text-cyan-400 hover:text-cyan-500">
                   Terms of Service
@@ -204,7 +204,7 @@ export default function SignupPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 bg-cyan-400 hover:bg-cyan-500 text-white font-bold rounded-lg transition"
+              className="w-full py-2 sm:py-3 text-sm sm:text-base bg-cyan-400 hover:bg-cyan-500 text-white font-bold rounded-lg transition"
             >
               Create account
             </button>
@@ -214,6 +214,7 @@ export default function SignupPage() {
     </div>
   );
 }
+
 
 // Icons
 function ArrowLeft({ className }: { className: string }) {

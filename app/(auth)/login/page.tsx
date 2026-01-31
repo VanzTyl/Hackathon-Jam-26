@@ -8,33 +8,33 @@ export default function LoginPage() {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen">
       {/* Left Section - Dark Background */}
-      <div className="w-1/2 bg-slate-950 text-white flex flex-col justify-between p-12">
+      <div className="w-full lg:w-1/2 bg-slate-950 text-white flex flex-col justify-between p-6 sm:p-8 lg:p-12 order-2 lg:order-1">
         {/* Back Button */}
-        <Link href="/welcome" className="text-slate-300 hover:text-white flex items-center gap-2 w-fit">
-          <ArrowLeft className="w-5 h-5" />
+        <Link href="/welcome" className="text-slate-300 hover:text-white flex items-center gap-2 w-fit text-sm sm:text-base">
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           Back to home
         </Link>
 
         {/* Logo and Welcome Message */}
-        <div>
+        <div className="hidden lg:block">
           <div className="w-12 h-12 bg-cyan-400 rounded-lg flex items-center justify-center mb-8">
             <Eye className="w-7 h-7 text-slate-950" />
           </div>
 
-          <h1 className="text-5xl font-bold mb-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
             Welcome back to<br />
             <span className="text-cyan-400">Unveil</span>
           </h1>
 
-          <p className="text-slate-400 text-lg leading-relaxed">
+          <p className="text-slate-400 text-base sm:text-lg leading-relaxed">
             Continue your journey with the CIIT community. Your conversations and forums are waiting.
           </p>
         </div>
 
         {/* Footer Stats */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 hidden lg:flex">
           <div className="flex -space-x-3">
             <div className="w-10 h-10 rounded-full bg-cyan-400 border-2 border-slate-950"></div>
             <div className="w-10 h-10 rounded-full bg-cyan-500 border-2 border-slate-950"></div>
@@ -46,12 +46,12 @@ export default function LoginPage() {
       </div>
 
       {/* Right Section - Light Background */}
-      <div className="w-1/2 bg-slate-50 flex items-center justify-center p-12">
+      <div className="w-full lg:w-1/2 bg-slate-50 flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-y-auto order-1 lg:order-2">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Log in to your account</h2>
-            <p className="text-slate-600">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Log in to your account</h2>
+            <p className="text-sm sm:text-base text-slate-600">
               Don't have an account?{' '}
               <Link href="/signup" className="text-cyan-400 hover:text-cyan-500 font-medium">
                 Sign up
@@ -60,45 +60,45 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form className="space-y-6">
+          <form className="space-y-4 sm:space-y-6">
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-900 mb-1 sm:mb-2">
                 CIIT Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 <input
                   type="email"
                   placeholder="your.name@ciit.edu.ph"
-                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                  className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* Password Field */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-900">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-900">
                   Password
                 </label>
-                <Link href="/forgot-password" className="text-sm text-cyan-400 hover:text-cyan-500">
+                <Link href="/forgot-password" className="text-xs sm:text-sm text-cyan-400 hover:text-cyan-500">
                   Forgot password?
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  className="w-full pl-12 pr-12 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                  className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2 sm:py-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
@@ -109,15 +109,15 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={keepLoggedIn}
                 onChange={(e) => setKeepLoggedIn(e.target.checked)}
-                className="w-5 h-5 border border-slate-300 rounded cursor-pointer"
+                className="w-5 h-5 border border-slate-300 rounded cursor-pointer flex-shrink-0"
               />
-              <span className="text-sm text-slate-600">Keep me logged in</span>
+              <span className="text-xs sm:text-sm text-slate-600">Keep me logged in</span>
             </label>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 bg-cyan-400 hover:bg-cyan-500 text-white font-bold rounded-lg transition"
+              className="w-full py-2 sm:py-3 text-sm sm:text-base bg-cyan-400 hover:bg-cyan-500 text-white font-bold rounded-lg transition"
             >
               Log in
             </button>

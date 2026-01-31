@@ -1,94 +1,95 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 
 export default function WelcomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center">
-            <Eye className="w-6 h-6 text-white" />
+      <header className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-900 rounded-full flex items-center justify-center">
+            <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Unveil</h1>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900">Unveil</h1>
             <p className="text-xs text-slate-600">CIIT College</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="text-slate-900 font-medium">Log in</button>
-          <button className="px-6 py-2 bg-cyan-400 text-white font-medium rounded-full hover:bg-cyan-500">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/login" className="text-slate-900 font-medium text-sm sm:text-base hover:text-slate-700">
+            Log in
+          </Link>
+          <Link href="/signup" className="px-4 sm:px-6 py-2 bg-cyan-400 text-white font-medium rounded-full hover:bg-cyan-500 text-sm sm:text-base">
             Sign up
-          </button>
+          </Link>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="px-8 py-20">
-        <div className="grid grid-cols-2 gap-12 max-w-6xl mx-auto">
+      <main className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
           {/* Left Section */}
           <div className="flex flex-col justify-center">
-            <div className="mb-6 inline-flex items-center gap-2 bg-cyan-100 text-cyan-600 px-4 py-2 rounded-full w-fit">
+            <div className="mb-4 sm:mb-6 inline-flex items-center gap-2 bg-cyan-100 text-cyan-600 px-3 sm:px-4 py-2 rounded-full w-fit text-xs sm:text-sm">
               <Lock className="w-4 h-4" />
-              <span className="text-sm font-medium">Anonymous Mode Available</span>
+              <span className="font-medium">Anonymous Mode Available</span>
             </div>
             
-            <h2 className="text-6xl font-bold text-slate-900 mb-6">
-              Connect<br />with your<br />
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-4 sm:mb-6 leading-tight">
+              Connect<br className="hidden sm:block" />with your<br className="hidden sm:block" />
               <span className="text-cyan-400">CIIT Community</span>
             </h2>
             
-            <p className="text-slate-600 text-lg mb-8 leading-relaxed">
+            <p className="text-slate-600 text-base sm:text-lg lg:text-lg mb-6 sm:mb-8 leading-relaxed">
               Unveil brings students and faculty together in a safe, engaging space. Share ideas, ask questions, and collaborate — with the freedom to stay anonymous when you need it.
             </p>
 
-            <div className="flex gap-4">
-              <button className="px-8 py-3 bg-slate-900 text-white font-medium rounded-full hover:bg-slate-800 flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Link href="/signup" className="px-6 sm:px-8 py-2 sm:py-3 bg-slate-900 text-white font-medium rounded-full hover:bg-slate-800 flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base">
                 Get Started
                 <ArrowRight className="w-4 h-4" />
-              </button>
-              <button className="px-8 py-3 border-2 border-slate-900 text-slate-900 font-medium rounded-full hover:bg-slate-50">
+              </Link>
+              <Link href="/login" className="px-6 sm:px-8 py-2 sm:py-3 border-2 border-slate-900 text-slate-900 font-medium rounded-full hover:bg-slate-50 text-center sm:text-left text-sm sm:text-base">
                 I have an account
-              </button>
+              </Link>
             </div>
           </div>
 
           {/* Right Section - Feature Cards */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {/* Forums Card */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <MessageSquare className="w-10 h-10 text-cyan-400 mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Forums</h3>
-              <p className="text-slate-600 text-sm">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition">
+              <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-400 mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-lg font-bold text-slate-900 mb-2">Forums</h3>
+              <p className="text-slate-600 text-sm sm:text-sm leading-relaxed">
                 Engage in course-specific discussions and share knowledge with classmates.
               </p>
             </div>
 
             {/* Chat Card */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <Users className="w-10 h-10 text-pink-400 mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Chat</h3>
-              <p className="text-slate-600 text-sm">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition">
+              <Users className="w-8 h-8 sm:w-10 sm:h-10 text-pink-400 mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-lg font-bold text-slate-900 mb-2">Chat</h3>
+              <p className="text-slate-600 text-sm sm:text-sm leading-relaxed">
                 Direct messaging with students and faculty. Stay connected anytime.
               </p>
             </div>
 
             {/* Mask Mode Card */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <Bookmark className="w-10 h-10 text-slate-900 mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Mask Mode</h3>
-              <p className="text-slate-600 text-sm">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition">
+              <Bookmark className="w-8 h-8 sm:w-10 sm:h-10 text-slate-900 mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-lg font-bold text-slate-900 mb-2">Mask Mode</h3>
+              <p className="text-slate-600 text-sm sm:text-sm leading-relaxed">
                 Post anonymously as a CIITzen. Your identity stays hidden until you choose to reveal it.
               </p>
             </div>
 
             {/* Safe Space Card */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition">
-              <Shield className="w-10 h-10 text-green-400 mb-4" />
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Safe Space</h3>
-              <p className="text-slate-600 text-sm">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition">
+              <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-green-400 mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-lg font-bold text-slate-900 mb-2">Safe Space</h3>
+              <p className="text-slate-600 text-sm sm:text-sm leading-relaxed">
                 A moderated community where respectful dialogue is encouraged.
               </p>
             </div>
@@ -97,22 +98,22 @@ export default function WelcomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 px-8 py-6 mt-20">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center">
-              <Eye className="w-5 h-5 text-white" />
+      <footer className="border-t border-slate-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 mt-12 sm:mt-16 lg:mt-20">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-slate-900 rounded-full flex items-center justify-center">
+              <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <p className="text-slate-600 text-sm">Unveil - CIIT College</p>
+            <p className="text-slate-600 text-xs sm:text-sm">Unveil - CIIT College</p>
           </div>
-          <p className="text-slate-600 text-sm">2026 Unveil. All rights reserved.</p>
+          <p className="text-slate-600 text-xs sm:text-sm">2026 Unveil. All rights reserved.</p>
         </div>
       </footer>
     </div>
   );
 }
 
-// Icon components (use lucide-react or your preferred icon library)
+// Icon components
 function Eye({ className }: { className: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
