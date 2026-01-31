@@ -1,222 +1,158 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, FormEvent } from 'react'
+import { supabase } from '../../supabase-client'
+import { useRouter } from 'next/navigation' // For redirecting
+import Link from 'next/link' // For the login link
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const router = useRouter();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [mask, setMask] = useState<'student' | 'tutor'>('student')
+  const [message, setMessage] = useState('')
+  
+  const router = useRouter() // Initialize router
 
-  const validateEmail = (email: string) => {
-    return email.endsWith('@ciit.edu.ph') && email.includes('@');
-  };
+  const handleRegister = async (e: FormEvent) => {
+    e.preventDefault()
+    setMessage('Processing...')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    // Validation
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('All fields are required');
-      setIsLoading(false);
-      return;
+    // 1. Domain Validation
+    if (!email.endsWith('@ciit.edu.ph')) {
+      setMessage('Error: Only @ciit.edu.ph emails are allowed.')
+      return
     }
 
-    if (!validateEmail(formData.email)) {
-      setError('Only @ciit.edu.ph email addresses are allowed');
-      setIsLoading(false);
-      return;
+    // 2. Sign up the user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    if (authError) {
+      setMessage(`Auth Error: ${authError.message}`)
+      return
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
+    // 3. Insert the extra details into your 'users' table
+    if (authData.user) {
+      const { error: dbError } = await supabase
+        .from('users')
+        .insert([
+          {
+            user_id: authData.user.id,
+            email_address: email,
+            first_name: firstName,
+            last_name: lastName,
+            mask: mask,
+          },
+        ])
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
+      if (dbError) {
+        setMessage(`Database Error: ${dbError.message}`)
       } else {
-        setError(data.error || 'Registration failed');
+        setMessage('Registration successful! Redirecting...')
+        
+        // 4. Redirect to home page after a short delay so they can see the success message
+        setTimeout(() => {
+          router.push('/')
+        }, 2000)
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Registration Successful!</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Please check your @ciit.edu.ph email to verify your account.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your CIIT Account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+      <div className="unveil-card rounded-[45px] w-full max-w-md p-12">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-slate-900">Sign Up</h1>
+          <p className="text-slate-500 mt-2">Join the Unveil community</p>
+        </div>
+
+        <form onSubmit={handleRegister} className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">First Name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-[20px] border border-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                placeholder="John"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Last Name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-[20px] border border-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                placeholder="Doe"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Email (@ciit.edu.ph)</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-[20px] border border-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+              placeholder="john.doe@ciit.edu.ph"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 rounded-[20px] border border-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">I am a...</label>
+            <select
+              value={mask}
+              onChange={(e) => setMask(e.target.value as 'student' | 'tutor')}
+              className="w-full px-4 py-3 rounded-[20px] border border-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100 bg-white"
+            >
+              <option value="student">Student</option>
+              <option value="tutor">Tutor</option>
+            </select>
+          </div>
+
+          {message && (
+            <div className={`p-3 rounded-[16px] text-sm ${message.includes('Error') ? 'bg-red-50 text-red-700' : message.includes('successful') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
+              {message}
+            </div>
+          )}
+
+          <button type="submit" className="w-full py-3 bg-cyan-500 text-white rounded-[20px] font-semibold hover:bg-cyan-600 transition">
+            Create Account
+          </button>
+        </form>
+
+        <div className="mt-6 pt-6 border-t border-slate-200 text-center">
+          <p className="text-slate-600 text-sm">
             Already have an account?{' '}
-            <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
+            <a href="/login" className="text-cyan-600 font-semibold hover:underline">
+              Log in here
             </a>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="First Name"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Last Name"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                CIIT Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="your.name@ciit.edu.ph"
-                value={formData.email}
-                onChange={handleChange}
-              />
-              <p className="mt-1 text-xs text-gray-500">Only @ciit.edu.ph email addresses are allowed</p>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password (min 8 characters)"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
-  );
+  )
 }
