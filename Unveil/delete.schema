@@ -1,0 +1,51 @@
+-- DROP ENTIRE DATABASE
+
+1. The "Nuclear" Reset (Drop and Recreate)
+Run this block of code to wipe everything in the public schema and immediately recreate it with the correct permissions.
+
+SQL
+-- 1. Drop the schema and everything in it
+drop schema public cascade;
+
+-- 2. Recreate the schema
+create schema public;
+
+-- 3. Restore standard permissions so Supabase can function
+grant usage on schema public to postgres;
+grant usage on schema public to anon;
+grant usage on schema public to authenticated;
+grant usage on schema public to service_role;
+
+grant all privileges on all tables in schema public to postgres;
+grant all privileges on all tables in schema public to anon;
+grant all privileges on all tables in schema public to authenticated;
+grant all privileges on all tables in schema public to service_role;
+
+grant all privileges on all functions in schema public to postgres;
+grant all privileges on all functions in schema public to anon;
+grant all privileges on all functions in schema public to authenticated;
+grant all privileges on all functions in schema public to service_role;
+
+grant all privileges on all sequences in schema public to postgres;
+grant all privileges on all sequences in schema public to anon;
+grant all privileges on all sequences in schema public to authenticated;
+grant all privileges on all sequences in schema public to service_role;
+
+-- USE THIS IF CACHE IS BROKEN
+
+The "Fix Everything" Permissions Script
+Run this in your SQL Editor. This not only grants permissions for what exists now but ensures that any future tables you create will automatically be accessible to your Supabase API.
+
+SQL
+-- 1. Ensure the schema is usable
+grant usage on schema public to postgres, anon, authenticated, service_role;
+
+-- 2. Fix permissions for EXISTING tables
+grant all privileges on all tables in schema public to postgres, anon, authenticated, service_role;
+grant all privileges on all functions in schema public to postgres, anon, authenticated, service_role;
+grant all privileges on all sequences in schema public to postgres, anon, authenticated, service_role;
+
+-- 3. Fix permissions for FUTURE tables (The "Clog" Killer)
+alter default privileges in schema public grant all on tables to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to postgres, anon, authenticated, service_role;
