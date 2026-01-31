@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 // 1. Lists for random name generation
-const adjectives = ['Secret', 'Hidden', 'Mighty', 'Swift', 'Silent', 'Golden', 'Neon', 'Brave', 'Scaredy', 'Cute', 'Evil', 'Global', 'Social', 'Silly', 'Giving', 'Elden'];
-const animals = ['Panda', 'Eagle', 'Fox', 'Lion', 'Cat', 'Wolf', 'Tiger', 'Owl', 'Kitty', 'Coffee', 'Bear', 'Jam', 'Hacker', 'Whale', 'Shark', 'Seal', 'Goober'];
+const adjectives = ['Secret', 'Hidden', 'Mighty', 'Swift', 'Silent', 'Golden', 'Neon', 'Brave', 'Scaredy', 'Cute', 'Evil', 'Global', 'Social', 'Silly', 'Giving', 'Elden', 'Masked', 'Anonymous'];
+const animals = ['Panda', 'Eagle', 'Fox', 'Lion', 'Cat', 'Wolf', 'Tiger', 'Owl', 'Kitty', 'Coffee', 'Bear', 'Jammer', 'Hacker', 'Whale', 'Shark', 'Seal', 'Goober', 'Teacup', 'Beaver', 'Mouse'];
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
