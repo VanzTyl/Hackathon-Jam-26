@@ -1,52 +1,55 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import ForumCard, { Forum } from "@/components/ForumCard" // Note the default and named import
+import ForumCard, { Forum } from "@/components/ForumCard"
 import { supabase } from "@/supabase-client"
 
-function Forums() {
+export default function ForumsPage() {
   const [forums, setForums] = useState<Forum[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchForums = async () => {
-      const { data, error } = await supabase
-        .from('forum')
-        .select(`
-          *,
-          users (
-            image_url,
-            masked_name
-          )
-        `) 
-        .order('created_at', { ascending: false });
-
+      // If nothing shows, try changing this to .select('*') first 
+      // just to see if raw data appears without the user join.
+     const { data, error } = await supabase
+  .from('forum')
+  .select(`
+    *,
+    users!fk_forum_user (
+      masked_name,
+      image_url
+    )
+  `) 
+  .order('created_at', { ascending: false });
       if (error) {
-        console.error('Error fetching forums:', error)
+        console.error('Supabase Error:', error.message);
       } else {
-        // We cast to 'any' then to 'Forum[]' because Supabase's joined 
-        // return types are complex for TS to guess automatically
-        setForums((data as any) || [])
+        console.log('Fetched Data:', data); // Check your browser console (F12) for this!
+        setForums((data as any) || []);
       }
-      setLoading(false)
+      setLoading(false);
     }
 
-    fetchForums()
+    fetchForums();
   }, [])
 
-  if (loading) return <p style={{ color: 'white' }}>Loading forums...</p>
+  if (loading) return <div style={{ color: 'white', padding: '50px' }}>Loading Forums...</div>
 
   return (
-    <div className="forums-container" style={{ padding: '20px' }}>
-      {forums.length > 0 ? (
-        forums.map((forum) => (
-          <ForumCard key={forum.id} forum={forum} />
-        ))
-      ) : (
-        <p style={{ color: 'white' }}>No forums found. Be the first to post!</p>
-      )}
-    </div>
+    <main style={{ backgroundColor: '#000', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <h1 style={{ color: 'white', marginBottom: '20px' }}>Community Feed</h1>
+        
+        {forums.length > 0 ? (
+          forums.map((f) => <ForumCard key={f.id} forum={f} />)
+        ) : (
+          <div style={{ color: '#666', textAlign: 'center', marginTop: '50px' }}>
+            <p>No posts found.</p>
+            <p style={{ fontSize: '12px' }}>Check F12 console for "Fetched Data"</p>
+          </div>
+        )}
+      </div>
+    </main>
   )
 }
-
-export default Forums
