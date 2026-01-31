@@ -7,7 +7,6 @@ interface CreateForumPostProps {
   onPostCreated: (newPost: any) => void
 }
 
-// Changed to UPPERCASE to match what your DB likely expects based on the error
 const COURSE_TAGS = ["BSIS", "BSEMC", "BSA", "BSE", "BMMA", "BSCS"]
 
 export default function CreateForumPost({ onPostCreated }: CreateForumPostProps) {
@@ -36,8 +35,10 @@ export default function CreateForumPost({ onPostCreated }: CreateForumPostProps)
         { 
           title: title, 
           forum_text: forumText, 
-          tag: selectedTag, // Sending uppercase e.g., "BSIS"
-          user_id: user.id 
+          tag: selectedTag,
+          user_id: user.id,
+          // Set automatically to ACTIVE (matching your Enum casing)
+          status: 'ACTIVE', 
         }
       ])
       .select(`*, users!fk_forum_user (masked_name, image_url)`)
@@ -93,7 +94,7 @@ export default function CreateForumPost({ onPostCreated }: CreateForumPostProps)
   )
 }
 
-// Styling to match your screenshot
+// ... styles remain the same
 const formStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '15px' }
 const inputStyle = { padding: '12px', borderRadius: '8px', border: '1px solid #333', background: '#000', color: '#fff', outline: 'none' }
 const textAreaStyle = { ...inputStyle, minHeight: '120px', resize: 'none' as any }
