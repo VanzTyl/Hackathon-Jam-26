@@ -1,0 +1,162 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+
+export default function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [keepLoggedIn, setKeepLoggedIn] = useState(false);
+
+  return (
+    <div className="flex h-screen">
+      {/* Left Section - Dark Background */}
+      <div className="w-1/2 bg-slate-950 text-white flex flex-col justify-between p-12">
+        {/* Back Button */}
+        <Link href="/welcome" className="text-slate-300 hover:text-white flex items-center gap-2 w-fit">
+          <ArrowLeft className="w-5 h-5" />
+          Back to home
+        </Link>
+
+        {/* Logo and Welcome Message */}
+        <div>
+          <div className="w-12 h-12 bg-cyan-400 rounded-lg flex items-center justify-center mb-8">
+            <Eye className="w-7 h-7 text-slate-950" />
+          </div>
+
+          <h1 className="text-5xl font-bold mb-6">
+            Welcome back to<br />
+            <span className="text-cyan-400">Unveil</span>
+          </h1>
+
+          <p className="text-slate-400 text-lg leading-relaxed">
+            Continue your journey with the CIIT community. Your conversations and forums are waiting.
+          </p>
+        </div>
+
+        {/* Footer Stats */}
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-3">
+            <div className="w-10 h-10 rounded-full bg-cyan-400 border-2 border-slate-950"></div>
+            <div className="w-10 h-10 rounded-full bg-cyan-500 border-2 border-slate-950"></div>
+            <div className="w-10 h-10 rounded-full bg-cyan-600 border-2 border-slate-950"></div>
+            <div className="w-10 h-10 rounded-full bg-cyan-700 border-2 border-slate-950"></div>
+          </div>
+          <p className="text-slate-300">Join your fellow CIITzens today!</p>
+        </div>
+      </div>
+
+      {/* Right Section - Light Background */}
+      <div className="w-1/2 bg-slate-50 flex items-center justify-center p-12">
+        <div className="w-full max-w-md">
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">Log in to your account</h2>
+            <p className="text-slate-600">
+              Don't have an account?{' '}
+              <Link href="/signup" className="text-cyan-400 hover:text-cyan-500 font-medium">
+                Sign up
+              </Link>
+            </p>
+          </div>
+
+          {/* Form */}
+          <form className="space-y-6">
+            {/* Email Field */}
+            <div>
+              <label className="block text-sm font-medium text-slate-900 mb-2">
+                CIIT Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="email"
+                  placeholder="your.name@ciit.edu.ph"
+                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-slate-900">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-sm text-cyan-400 hover:text-cyan-500">
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  className="w-full pl-12 pr-12 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <Eye className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={keepLoggedIn}
+                onChange={(e) => setKeepLoggedIn(e.target.checked)}
+                className="w-5 h-5 border border-slate-300 rounded cursor-pointer"
+              />
+              <span className="text-sm text-slate-600">Keep me logged in</span>
+            </label>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full py-3 bg-cyan-400 hover:bg-cyan-500 text-white font-bold rounded-lg transition"
+            >
+              Log in
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Icons
+function ArrowLeft({ className }: { className: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
+function Eye({ className }: { className: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+    </svg>
+  );
+}
+
+function Mail({ className }: { className: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function Lock({ className }: { className: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm6-10V7a3 3 0 00-3-3H9a3 3 0 00-3 3v2h12z" />
+    </svg>
+  );
+}
