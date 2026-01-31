@@ -1,6 +1,11 @@
+import AuthGuard from '@/components/AuthGuard'
+
 function Dashboard(){
   return(
-    <p>rahh im the dashboard rawr</p>
+    <AuthGuard>
+      <p>meow</p>
+    </AuthGuard>
+    
   )
 }
 
