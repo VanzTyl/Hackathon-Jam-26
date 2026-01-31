@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import ChatroomCard from "@/components/ChatroomCard";
 
 interface Chatroom{
-    id: number;
+    // id: number;       
+    chat_room_id: string;   // Changed the name and data type to match the column DB name
     name: string;
     created_at: string;
 }
@@ -36,11 +37,12 @@ export default function ChatRooms(){
     return(
         <div className="chatrooms-container">
             {chatroom.length > 0 ? (
-                chatroom.map((chatroom) =>(
-                    <ChatroomCard key={chatroom.id} chatroom={chatroom}/>
+            // We rename the item to 'item' to avoid confusion with the array
+                chatroom.map((item) =>(
+                    <ChatroomCard key={item.chat_room_id} chatroom={item}/>
                 ))
             ): (
-                <p>No chatrooms yet... Set up a chat with someone or soemthign</p>
+                <p>No chatrooms yet... Set up a chat with someone or something</p>
             )
 
             }

@@ -1,7 +1,7 @@
 import React from 'react'
 
 export interface Chatroom{
-    id: number;
+    chat_room_id: string;   // Changed the name and data type to match the column DB name
     name: string;
     created_at: string;
 }
