@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body { 
+    font-family: 'Inter', sans-serif; 
+}
+
+/* Custom Scrollbar for Sidebar */
+.no-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.no-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+.mask-transition { 
+    transition: all 0.3s ease; 
+}
+
+/* Base Colors fallback */
+:root {
+    --ciit-navy: #0F172A;
+    --ciit-cyan: #00ADEF;
+    --ciit-red: #EF4444;
+}
