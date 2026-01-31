@@ -2,8 +2,12 @@
 
 import { useState, FormEvent } from 'react'
 import { supabase } from '../../supabase-client'
-import { useRouter } from 'next/navigation' // For redirecting
-import Link from 'next/link' // For the login link
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+// 1. Lists for random name generation
+const adjectives = ['Secret', 'Hidden', 'Mighty', 'Swift', 'Silent', 'Golden', 'Neon', 'Brave', 'Scaredy', 'Cute', 'Evil', 'Global', 'Social', 'Silly', 'Giving', 'Elden'];
+const animals = ['Panda', 'Eagle', 'Fox', 'Lion', 'Cat', 'Wolf', 'Tiger', 'Owl', 'Kitty', 'Coffee', 'Bear', 'Jam', 'Hacker', 'Whale', 'Shark', 'Seal', 'Goober'];
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -13,19 +17,17 @@ export default function RegisterPage() {
   const [mask, setMask] = useState<'student' | 'tutor'>('student')
   const [message, setMessage] = useState('')
   
-  const router = useRouter() // Initialize router
+  const router = useRouter()
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault()
     setMessage('Processing...')
 
-    // 1. Domain Validation
     if (!email.endsWith('@ciit.edu.ph')) {
       setMessage('Error: Only @ciit.edu.ph emails are allowed.')
       return
     }
 
-    // 2. Sign up the user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -36,8 +38,17 @@ export default function RegisterPage() {
       return
     }
 
-    // 3. Insert the extra details into your 'users' table
     if (authData.user) {
+      // 2. Generate the Random Masked Name
+      const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+      const randomNumber = Math.floor(100 + Math.random() * 900); // e.g., 482
+      const randomMaskedName = `${randomAdjective}${randomAnimal}${randomNumber}`;
+
+      const defaultImage = mask === 'student' ? 'student.png' : 'tutor.png'
+      const fullImageUrl = `https://ymjiaznhhzkxbskuqmra.supabase.co/storage/v1/object/public/images/${defaultImage}`
+
+      // 3. Insert into 'users' table including 'masked_name'
       const { error: dbError } = await supabase
         .from('users')
         .insert([
@@ -47,21 +58,23 @@ export default function RegisterPage() {
             first_name: firstName,
             last_name: lastName,
             mask: mask,
+            image_url: fullImageUrl,
+            masked_name: randomMaskedName, // New column from your schema
           },
         ])
 
       if (dbError) {
         setMessage(`Database Error: ${dbError.message}`)
       } else {
-        setMessage('Registration successful! Redirecting...')
-        
-        // 4. Redirect to home page after a short delay so they can see the success message
+        setMessage(`Success! Your masked identity is: ${randomMaskedName}. Redirecting...`)
         setTimeout(() => {
           router.push('/')
-        }, 2000)
+        }, 3000)
       }
     }
   }
+
+  // ... (rest of your return JSX stays the same)
 
   return (
     <div>
