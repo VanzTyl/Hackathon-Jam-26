@@ -49,7 +49,7 @@ export default function RegisterPage() {
           masked_name: randomMaskedName,
         })
 
-        setMessage(`Success! Your masked identity is: ${randomMaskedName}. Redirecting...`)
+        setMessage(`Please check your e-mail for verification. Your masked identity is: ${randomMaskedName}. Redirecting...`)
         setTimeout(() => {
           router.push('/login')
         }, 3000)

@@ -93,7 +93,7 @@ export function Sidebar({
           </div>
           <div>
             <h1 className="font-semibold text-primary">CIIT</h1>
-            <p className="text-xs text-gray-600">University</p>
+            <p className="text-xs text-gray-600">College of Innovation and Intergrated Technology</p>
           </div>
         </div>
 

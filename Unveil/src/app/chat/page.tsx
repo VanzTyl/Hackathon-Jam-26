@@ -33,6 +33,13 @@ export default function ChatPage() {
   useEffect(() => {
     if (userId) {
       loadActiveSessions();
+      
+      // Poll for new active sessions every 2 seconds
+      const sessionInterval = setInterval(() => {
+        loadActiveSessions();
+      }, 2000);
+
+      return () => clearInterval(sessionInterval);
     }
   }, [userId, maskMode]);
 
@@ -40,6 +47,13 @@ export default function ChatPage() {
     if (selectedSession) {
       loadMessages();
       loadOtherUser();
+      
+      // Poll for new messages every 1 second
+      const messageInterval = setInterval(() => {
+        loadMessages();
+      }, 1000);
+
+      return () => clearInterval(messageInterval);
     }
   }, [selectedSession]);
 
