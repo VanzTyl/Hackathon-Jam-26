@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS mentors (
 -- Signals Table (linked to user, not specific role)
 CREATE TABLE IF NOT EXISTS signals (
   signal_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE, -- updated by gemini
+  user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   title VARCHAR(200) NOT NULL,
   description TEXT NOT NULL,
   tags TEXT[] NOT NULL DEFAULT '{}',
@@ -54,25 +54,25 @@ CREATE TABLE IF NOT EXISTS signals (
 );
 
 -- Signal Chat Table
-CREATE TABLE IF NOT EXISTS signalchat ( -- updated by gemini: lowercased for stability
-  signalchatid UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- updated by gemini: lowercased
-  signal_id UUID NOT NULL REFERENCES signals(signal_id) ON DELETE CASCADE, -- updated by gemini: added cascade
+CREATE TABLE IF NOT EXISTS signalchat (
+  signalchatid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  signal_id UUID NOT NULL REFERENCES signals(signal_id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
 -- Signal Chat Users Table
-CREATE TABLE IF NOT EXISTS signalchatusers ( -- updated by gemini: lowercased
-  signalchatid UUID NOT NULL REFERENCES signalchat(signalchatid) ON DELETE CASCADE, -- updated by gemini: added cascade
+CREATE TABLE IF NOT EXISTS signalchatusers (
+  signalchatid UUID NOT NULL REFERENCES signalchat(signalchatid) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'mentor')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
-  PRIMARY KEY (signalchatid, user_id) -- updated by gemini: lowercased
+  PRIMARY KEY (signalchatid, user_id)
 );
 
 -- Signal Messages Table
-CREATE TABLE IF NOT EXISTS signalmessages ( -- updated by gemini: lowercased
+CREATE TABLE IF NOT EXISTS signalmessages (
   message_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  signalchatid UUID NOT NULL REFERENCES signalchat(signalchatid) ON DELETE CASCADE, -- updated by gemini: added cascade
+  signalchatid UUID NOT NULL REFERENCES signalchat(signalchatid) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS forum_posts (
   content TEXT NOT NULL,
   tags TEXT[] NOT NULL DEFAULT '{}',
   is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
-  masked_name VARCHAR(100), -- updated by gemini
+  masked_name VARCHAR(100),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS forum_responses (
   post_id UUID NOT NULL REFERENCES forum_posts(post_id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  masked_name VARCHAR(100), -- updated by gemini
+  masked_name VARCHAR(100),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -124,17 +124,17 @@ CREATE TABLE IF NOT EXISTS connections (
 CREATE INDEX IF NOT EXISTS idx_signals_user_id ON signals(user_id);
 CREATE INDEX IF NOT EXISTS idx_signals_status ON signals(status);
 CREATE INDEX IF NOT EXISTS idx_signals_created_at ON signals(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_signalchat_signal_id ON signalchat(signal_id); -- updated by gemini
-CREATE INDEX IF NOT EXISTS idx_signalchatusers_signalchatid ON signalchatusers(signalchatid); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_signalchat_signal_id ON signalchat(signal_id);
+CREATE INDEX IF NOT EXISTS idx_signalchatusers_signalchatid ON signalchatusers(signalchatid);
 CREATE INDEX IF NOT EXISTS idx_signalchatusers_user_id ON signalchatusers(user_id);
-CREATE INDEX IF NOT EXISTS idx_signalmessages_signalchatid ON signalmessages(signalchatid); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_signalmessages_signalchatid ON signalmessages(signalchatid);
 CREATE INDEX IF NOT EXISTS idx_signalmessages_created_at ON signalmessages(created_at);
 CREATE INDEX IF NOT EXISTS idx_mentees_user_id ON mentees(user_id);
 CREATE INDEX IF NOT EXISTS idx_mentors_user_id ON mentors(user_id);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_user_id ON forum_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_created_at ON forum_posts(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_forum_posts_masked_name ON forum_posts(masked_name); -- updated by gemini
-CREATE INDEX IF NOT EXISTS idx_forum_responses_post_id ON forum_responses(post_id); -- updated by gemini
+CREATE INDEX IF NOT EXISTS idx_forum_posts_masked_name ON forum_posts(masked_name);
+CREATE INDEX IF NOT EXISTS idx_forum_responses_post_id ON forum_responses(post_id);
 CREATE INDEX IF NOT EXISTS idx_forum_bookmarks_user_id ON forum_bookmarks(user_id);
 CREATE INDEX IF NOT EXISTS idx_connections_user_id ON connections(user_id);
 CREATE INDEX IF NOT EXISTS idx_connections_connected_user_id ON connections(connected_user_id);
@@ -142,9 +142,9 @@ CREATE INDEX IF NOT EXISTS idx_connections_connected_user_id ON connections(conn
 -- DISABLE ROW LEVEL SECURITY for easy prototyping
 ALTER TABLE users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE signals DISABLE ROW LEVEL SECURITY;
-ALTER TABLE signalchat DISABLE ROW LEVEL SECURITY; -- updated by gemini
-ALTER TABLE signalchatusers DISABLE ROW LEVEL SECURITY; -- updated by gemini
-ALTER TABLE signalmessages DISABLE ROW LEVEL SECURITY; -- updated by gemini
+ALTER TABLE signalchat DISABLE ROW LEVEL SECURITY;
+ALTER TABLE signalchatusers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE signalmessages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE mentees DISABLE ROW LEVEL SECURITY;
 ALTER TABLE mentors DISABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts DISABLE ROW LEVEL SECURITY;
@@ -174,9 +174,9 @@ COMMENT ON TABLE mentors IS 'Mentor accounts - separate identities for providing
 COMMENT ON COLUMN mentees.masked_name IS 'Anonymous identity when in mentee mode';
 COMMENT ON COLUMN mentors.masked_name IS 'Anonymous identity when in mentor mode';
 COMMENT ON TABLE signals IS 'Main table for help requests/signals from users';
-COMMENT ON TABLE signalchat IS 'Chat rooms created for each signal'; -- updated by gemini
-COMMENT ON TABLE signalchatusers IS 'Tracks users participating in signal chats'; -- updated by gemini
-COMMENT ON TABLE signalmessages IS 'Messages sent within signal chat rooms'; -- updated by gemini
+COMMENT ON TABLE signalchat IS 'Chat rooms created for each signal';
+COMMENT ON TABLE signalchatusers IS 'Tracks users participating in signal chats';
+COMMENT ON TABLE signalmessages IS 'Messages sent within signal chat rooms';
 COMMENT ON TABLE forum_posts IS 'Forum posts and discussions';
 COMMENT ON TABLE forum_responses IS 'Comments/responses to forum posts';
 COMMENT ON TABLE forum_bookmarks IS 'Users bookmarked forum posts';
@@ -184,3 +184,12 @@ COMMENT ON TABLE connections IS 'User connections and mentor/mentee relationship
 COMMENT ON COLUMN signals.status IS 'Signal lifecycle: open, in_progress, closed';
 COMMENT ON COLUMN signals.tags IS 'Array of tags for categorizing help requests';
 COMMENT ON COLUMN connections.status IS 'Connection status: pending, accepted';
+
+-- UPDATES FOR UNVEIL FLOW (updated by gemini)
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS is_resolved BOOLEAN DEFAULT NULL;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS mentee_wants_unveil BOOLEAN DEFAULT FALSE;
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS mentor_wants_unveil BOOLEAN DEFAULT FALSE;
+
+COMMENT ON COLUMN signals.is_resolved IS 'Tracks if the mentor successfully resolved the issue';
+COMMENT ON COLUMN signals.mentee_wants_unveil IS 'True if mentee agreed to reveal identity';
+COMMENT ON COLUMN signals.mentor_wants_unveil IS 'True if mentor agreed to reveal identity';

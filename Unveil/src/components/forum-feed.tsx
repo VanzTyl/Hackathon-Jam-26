@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, MessageSquare, Clock, Send, ArrowLeft, X } from "lucide-react";
+import { Plus, MessageSquare, Clock, Send, ArrowLeft, X, Hash } from "lucide-react";
 import { supabase } from "@/supabase-client";
 import { getForumPosts, getCurrentMode } from "@/lib/database";
 
@@ -18,6 +18,11 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
   const [newResponse, setNewResponse] = useState("");
   const [responses, setResponses] = useState<any[]>([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
+
+  // Tag Filter State
+  const [showTagFilterModal, setShowTagFilterModal] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<{ name: string; count: number }[]>([]);
 
   // updated by gemini: Time formatter for "4:26 AM" style
   const formatTime = (dateString: string) => {
@@ -40,12 +45,56 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
         return { ...post, response_count: count || 0 };
       }));
       setPosts(postsWithCounts);
+      
+      extractAndSetTags(postsWithCounts);
     } catch (error) {
       console.error('Load Error:', error);
     } finally {
       setLoading(false);
     }
   }, [userId, propMaskMode]);
+
+  const extractAndSetTags = (posts: any[]) => {
+    const tagMap = new Map<string, number>();
+    posts.forEach(post => {
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach((tag: string) => {
+          const normalizedTag = tag.trim().toLowerCase();
+          if (normalizedTag) {
+            tagMap.set(normalizedTag, (tagMap.get(normalizedTag) || 0) + 1);
+          }
+        });
+      }
+    });
+
+    const sortedTags = Array.from(tagMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+
+    setAllTags(sortedTags);
+  };
+
+  const handleToggleTag = (tagName: string) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tagName)) {
+        return prev.filter(t => t !== tagName);
+      } else {
+        return [...prev, tagName];
+      }
+    });
+  };
+
+  const clearTagFilters = () => {
+    setSelectedTags([]);
+  };
+
+  const filteredPosts = selectedTags.length > 0 
+    ? posts.filter(post => {
+        if (!post.tags || !Array.isArray(post.tags)) return false;
+        const postTags = post.tags.map((t: string) => t.trim().toLowerCase());
+        return selectedTags.every(selectedTag => postTags.includes(selectedTag));
+      })
+    : posts;
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -71,12 +120,17 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
     if (!userId || isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const tagsArray = newPost.tags.split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+
       const { error } = await supabase.from('forum_posts').insert([{
         user_id: userId,
         title: newPost.title,
         content: newPost.content,
         masked_name: currentMaskedName,
-        is_anonymous: true
+        is_anonymous: true,
+        tags: tagsArray
       }]);
       if (error) throw error;
       setNewPost({ title: '', content: '', tags: '' });
@@ -195,13 +249,43 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Community Forum</h1>
           <p className="text-gray-500 mt-1">Discuss and grow anonymously with others.</p>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)} 
-          className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-cyan-200 transition-all active:scale-95 flex items-center gap-2"
-        >
-          <Plus size={20}/> New Thread
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowTagFilterModal(true)}
+            className="bg-white hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-2xl font-bold shadow-lg shadow-gray-200/50 transition-all active:scale-95 flex items-center gap-2 border border-gray-200"
+          >
+            <Hash size={20}/> {selectedTags.length > 0 ? `${selectedTags.length} Tags` : 'Add Tags'}
+          </button>
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-cyan-200 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Plus size={20}/> New Thread
+          </button>
+        </div>
       </div>
+
+      {selectedTags.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2 items-center">
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Active Filters:</span>
+          {selectedTags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => handleToggleTag(tag)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-cyan-100 text-cyan-700 hover:bg-cyan-200 transition-colors"
+            >
+              <Hash size={12} /> {tag}
+              <X size={12} />
+            </button>
+          ))}
+          <button
+            onClick={clearTagFilters}
+            className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+          >
+            Clear All
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto space-y-6 pr-2">
         {loading ? ( 
@@ -209,8 +293,12 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mb-4" />
             <p>Gathering discussions...</p>
           </div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+            <p>No posts found matching your filters.</p>
+          </div>
         ) : (
-          posts.map((post) => (
+          filteredPosts.map((post) => (
             <div 
               key={post.post_id} 
               onClick={() => setSelectedPost(post)} 
@@ -232,7 +320,16 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
                   <h4 className="text-xl font-extrabold text-gray-900 group-hover:text-cyan-600 mb-2 transition-colors">
                     {post.title}
                   </h4>
-                  <p className="text-gray-600 line-clamp-2 leading-relaxed mb-4">{post.content}</p>
+                  <p className="text-gray-600 line-clamp-2 leading-relaxed mb-3">{post.content}</p>
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {post.tags.map((tag: string, idx: number) => (
+                        <span key={idx} className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                     <div className="flex items-center gap-1 text-cyan-600 font-bold text-sm bg-cyan-50/50 px-3 py-1.5 rounded-xl group-hover:bg-cyan-50 transition-colors">
                       <MessageSquare size={16} /> {post.response_count} Responses
@@ -275,6 +372,24 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
                 onChange={e => setNewPost({...newPost, content: e.target.value})} 
                 required 
               />
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Tags (comma separated)</label>
+                <input 
+                  placeholder="e.g., coding, help, javascript" 
+                  className="w-full p-4 bg-gray-50 border rounded-2xl outline-none focus:bg-white focus:border-cyan-400 text-gray-900 transition-all" 
+                  value={newPost.tags} 
+                  onChange={e => setNewPost({...newPost, tags: e.target.value})} 
+                />
+                {newPost.tags && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newPost.tags.split(',').filter(t => t.trim()).map((tag, idx) => (
+                      <span key={idx} className="text-xs font-bold bg-cyan-100 text-cyan-700 px-2 py-1 rounded-full">
+                        #{tag.trim()}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex gap-4 pt-2">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 font-bold text-gray-400 hover:text-gray-600">Discard</button>
                 <button 
@@ -286,6 +401,119 @@ export function ForumFeed({ userId, maskMode: propMaskMode }: { userId: string, 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* TAG FILTER MODAL */}
+      {showTagFilterModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white p-8 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Filter by Tags</h2>
+                <p className="text-sm text-gray-500 mt-1">Select multiple tags to filter posts</p>
+              </div>
+              <button onClick={() => setShowTagFilterModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors p-2 hover:bg-gray-100 rounded-full">
+                <X size={24}/>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto pr-2">
+              {allTags.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Hash size={48} className="mx-auto mb-4 opacity-50" />
+                  <p>No tags available yet.</p>
+                  <p className="text-sm">Create posts with tags to see them here!</p>
+                </div>
+              ) : (
+                <>
+                  {allTags.slice(0, 8).length > 0 && (
+                    <div className="mb-8">
+                      <h3 className="text-xs font-black text-cyan-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Hash size={14} /> Popular
+                      </h3>
+                      <div className="flex flex-wrap gap-3">
+                        {allTags.slice(0, 8).map((tag) => (
+                          <button
+                            key={tag.name}
+                            onClick={() => handleToggleTag(tag.name)}
+                            className={`
+                              px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95
+                              ${selectedTags.includes(tag.name) 
+                                ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                            `}
+                          >
+                            #{tag.name}
+                            <span className="ml-1 text-xs opacity-75">({tag.count})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {allTags.slice(8).length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Hash size={14} /> More
+                      </h3>
+                      <div className="flex flex-wrap gap-3">
+                        {allTags.slice(8).map((tag) => (
+                          <button
+                            key={tag.name}
+                            onClick={() => handleToggleTag(tag.name)}
+                            className={`
+                              px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95
+                              ${selectedTags.includes(tag.name) 
+                                ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                            `}
+                          >
+                            #{tag.name}
+                            <span className="ml-1 text-xs opacity-75">({tag.count})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {selectedTags.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-700">{selectedTags.length} tags selected:</span>
+                    <button
+                      onClick={clearTagFilters}
+                      className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowTagFilterModal(false)}
+                    className="px-6 py-3 bg-cyan-500 text-white rounded-xl font-bold hover:bg-cyan-600 transition-all"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {selectedTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => handleToggleTag(tag)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-cyan-100 text-cyan-700 hover:bg-cyan-200 transition-colors"
+                    >
+                      #{tag}
+                      <X size={12} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

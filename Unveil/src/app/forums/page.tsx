@@ -42,7 +42,7 @@ export default function ForumsPage() {
 
         {/* Main Forum Feed - No Profile Panel on right */}
         <div className="flex-1 overflow-hidden">
-          <ForumFeed activeTab={activeTab} onTabChange={setActiveTab} userId={userId} maskMode={maskMode} />
+          <ForumFeed userId={userId} maskMode={maskMode} />
         </div>
       </div>
     </AuthGuard>
